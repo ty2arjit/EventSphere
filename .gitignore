@@ -33,3 +33,5 @@ coverage/
 
 # Temporary verification scripts (created during step verification, never committed)
 *.temp.ts
+
+.claude/
