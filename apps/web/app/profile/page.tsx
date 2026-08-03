@@ -39,22 +39,18 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent>
+          {/*
+            The form owns its own outcome panels (success/error), since those
+            are driven by client state that lives inside it. Keeping them there
+            rather than lifting state into this Server Component is what allows
+            the page to remain server-rendered.
+          */}
           <section aria-labelledby="registration-form-heading">
             <h2 id="registration-form-heading" className="sr-only">
               Registration form
             </h2>
             <ProfileRegistrationForm />
-          </section>
-
-          {/* Step 7 renders the created profile here on success. */}
-          <section aria-labelledby="registration-result-heading">
-            <h2 id="registration-result-heading" className="sr-only">
-              Registration result
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Result panel — implemented in Step 7.
-            </p>
           </section>
         </CardContent>
       </Card>
