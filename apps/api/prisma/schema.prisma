@@ -1,0 +1,22 @@
+// Walking Skeleton schema — minimal only.
+// Full Profile Domain schema (UserProfile, UserPreferences, etc.) arrives in Phase 0.
+// See docs/plans/00-walking-skeleton.md Section 4.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}

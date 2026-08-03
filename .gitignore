@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+build/
+
+# Environment variables (never commit secrets)
+# NOTE: .env.example is intentionally NOT ignored — it documents required
+# variables without containing any values, and must stay in the repository.
+.env
+.env.local
+.env.*.local
+
+# Prisma
+apps/api/prisma/migrations/dev.db
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+coverage/
