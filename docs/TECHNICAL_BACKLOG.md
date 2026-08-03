@@ -4,7 +4,7 @@ Known technical debt, deferred decisions, and documented assumptions. Each item 
 
 **Status key:** 🔴 Blocking next phase (must be resolved before Phase 0) · 🟠 High priority (early Phase 0) · 🔵 Deferred (decision made, action scheduled) · 🟡 Accepted risk (no action planned yet) · ⚪ Assumption (documented for traceability)
 
-**Currently blocking Phase 0:** BL-008 (frontend folder convention — requires amending Canonical Architecture Specification §7).
+**Currently blocking Phase 0:** none. *(BL-008 resolved — see below.)*
 
 ---
 
@@ -130,10 +130,9 @@ No throttling on any endpoint. `SystemDesign.md` already designates Redis for ra
 
 Conclusion was ⚠️ *Approved with Minor Improvements* — no finding required changes before freeze. All items below are forward-looking: they concern scaling to Phase 0's many features rather than defects in the Walking Skeleton slice.
 
-### 🔴 BL-008 — No frontend folder-structure convention exists
+### ✅ BL-008 — No frontend folder-structure convention exists — **RESOLVED**
 **Origin:** Frontend Walking Skeleton review, finding H1
-**Status:** Deferred — **highest priority; to be resolved before Phase 0 begins**
-**Resolution path:** amend Canonical Architecture Specification **Section 7** to formally define the frontend structure
+**Status:** ✅ **Resolved** — Canonical Architecture Specification **§7.5** added (amendment recorded in §7.5.5), and the existing Profile implementation migrated to conform in the same change (commit `3b3e97f`).
 
 Canonical Architecture Specification §7 and `SystemDesign.md` both define only the **backend** module structure (`domain/`, `application/`, `infrastructure/`, `controller/`, …). Neither says anything about the frontend. The current layout — `app/<route>/` for routes and components, `lib/api/` for transport, `lib/validation/` for schemas — is sound, but it is undocumented and therefore unenforced.
 
