@@ -1,8 +1,8 @@
 # EventSphere — Production Deployment Checklist
 
 **Scope:** Walking Skeleton deployment to Railway (API) + Vercel (Web) + Neon (database).
-**Status:** Pre-deployment review complete. **2 blockers must be fixed before deploying.**
-**Verdict:** ⚠️ **Not deployable as-is** — see Blockers.
+**Status:** Pre-deployment review complete. Hardening pass applied — **both blockers resolved**.
+**Verdict:** ✅ **Ready to deploy**, with 3 deferred items to handle as deployment configuration (D-003, D-004, D-006).
 
 ---
 
@@ -11,21 +11,21 @@
 | Area | Status |
 |---|---|
 | Secrets hygiene | ✅ Verified clean — zero credentials in git history |
-| Environment variables | 🔴 1 undocumented variable (`CORS_ORIGINS`) |
-| API build for deployment | 🔴 Will fail — Prisma client never generated |
+| Environment variables | ✅ **Resolved (D-002)** — all variables documented |
+| API build for deployment | ✅ **Resolved (D-001)** — verified from a clean state |
 | Web build | ✅ Passes |
 | Migrations | 🟠 No deploy step defined; pooled-connection risk |
-| Security headers | 🟠 Absent |
+| Security headers | ✅ **Resolved (D-005)** — helmet added, `x-powered-by` removed |
 | Health endpoint | 🟠 Shallow — reports healthy without a database |
-| Logging | 🟠 Logs all request headers (Phase 0 credential risk) |
+| Logging | ✅ **Resolved (D-007)** — allowlist serializer; credentials verified absent |
 | Error responses | ✅ Generic, no internal leakage |
 | Rate limiting | 🟡 Deferred by decision (BL-007) |
 
 ---
 
-## 🔴 Blockers — must fix before deploying
+## ✅ Resolved in the hardening pass
 
-### D-001 — API build never generates the Prisma client
+### ✅ D-001 — API build never generates the Prisma client — **RESOLVED**
 **Impact:** deployment fails at build, or worse, builds and crashes at runtime.
 
 `apps/api` build is `tsc -p tsconfig.json` only. The generated Prisma client lives in `node_modules` (correctly gitignored, 0 files tracked), so it must be produced at deploy time. It is not.
@@ -46,16 +46,32 @@ Prisma's `postinstall` hook cannot locate `apps/api/prisma/schema.prisma` in thi
 
 ---
 
-### D-002 — `CORS_ORIGINS` is undocumented
+### ✅ D-002 — `CORS_ORIGINS` is undocumented — **RESOLVED**
 **Impact:** the deployed API silently rejects every request from the deployed frontend.
 
 `apps/api/src/server.ts:12` reads `CORS_ORIGINS`, defaulting to `http://localhost:3000`. It appears in **no** `.env.example`. Deploying without setting it means the API allows only localhost, so the Vercel origin is refused — presenting as an opaque browser CORS error rather than a clear misconfiguration.
 
 **Fix:** add to `apps/api/.env.example` with format documentation (comma-separated, no trailing slash), and set it on Railway to the real Vercel URL.
 
+### ✅ D-005 — No security headers; `x-powered-by` exposed — **RESOLVED**
+No `helmet`. Responses advertise `x-powered-by: Express` (confirmed in production-mode output).
+
+This is **BL-006**, previously accepted on the grounds that the API had no browser-facing exposure. Deploying publicly invalidates that reasoning.
+
+**Fix:** add `helmet` and `app.disable('x-powered-by')`.
+
 ---
 
-## 🟠 Should fix before deploying
+### ✅ D-007 — All request headers are logged — **RESOLVED**
+`pino-http` logs complete request headers by default (visible in captured output). Harmless today — there are no auth headers — but Phase 0 introduces HTTP-only auth cookies, at which point **every request logs a session credential**.
+
+**Fix now, while cheap:** configure redaction for `req.headers.cookie` and `req.headers.authorization`.
+
+---
+
+## 🟠 Deferred — handle during deployment configuration
+
+*Only D-003, D-004, and D-006 remain open. D-005 and D-007 were resolved in the hardening pass; see Resolved below.*
 
 ### D-003 — No migration deployment step
 Migrations are committed (`20260802111637_init_walking_skeleton`), but nothing runs `prisma migrate deploy`. A fresh Neon database would have **no `users` table**, so every registration returns 500.
@@ -74,24 +90,12 @@ datasource db {
 }
 ```
 
-### D-005 — No security headers; `x-powered-by` exposed
-No `helmet`. Responses advertise `x-powered-by: Express` (confirmed in production-mode output).
-
-This is **BL-006**, previously accepted on the grounds that the API had no browser-facing exposure. Deploying publicly invalidates that reasoning.
-
-**Fix:** add `helmet` and `app.disable('x-powered-by')`.
-
 ### D-006 — Health endpoint reports healthy without a database
 `/health` returns `{status:"ok"}` unconditionally. **Verified:** it returned 200 with `DATABASE_URL` entirely unset.
 
 Railway will treat a database-less instance as healthy and route traffic to it, converting a clear startup failure into scattered 500s.
 
 **Fix:** keep the shallow check for liveness, add a readiness check that performs `SELECT 1`.
-
-### D-007 — All request headers are logged
-`pino-http` logs complete request headers by default (visible in captured output). Harmless today — there are no auth headers — but Phase 0 introduces HTTP-only auth cookies, at which point **every request logs a session credential**.
-
-**Fix now, while cheap:** configure redaction for `req.headers.cookie` and `req.headers.authorization`.
 
 ---
 
@@ -113,7 +117,7 @@ Railway will treat a database-less instance as healthy and route traffic to it, 
 |---|---|---|---|
 | `DATABASE_URL` | ✅ | Neon **pooled** string | Runtime queries |
 | `DIRECT_DATABASE_URL` | ✅ (after D-004) | Neon **direct** string | Migrations only |
-| `CORS_ORIGINS` | ✅ | `https://<app>.vercel.app` | **Currently undocumented — D-002.** Comma-separated, no trailing slash |
+| `CORS_ORIGINS` | ✅ | `https://<app>.vercel.app` | Comma-separated, **no trailing slash** (origins compared exactly) |
 | `PORT` | ⚪ | injected by Railway | Code already honours it |
 | `NODE_ENV` | ✅ | `production` | Sets log level to `info` |
 
@@ -129,14 +133,16 @@ Railway will treat a database-less instance as healthy and route traffic to it, 
 
 **Order matters:** the API must exist before the web app can be configured with its URL, and CORS must then be updated with the resulting Vercel URL.
 
-### 1. Fix blockers
-- [ ] D-001 — `"build": "prisma generate && tsc -p tsconfig.json"`
-- [ ] D-002 — document `CORS_ORIGINS` in `.env.example`
-- [ ] D-003 — Railway pre-deploy: `pnpm prisma:deploy`
+### 1. Code hardening — ✅ COMPLETE
+- [x] D-001 — `"build": "prisma generate && tsc -p tsconfig.json"` *(verified from clean state)*
+- [x] D-002 — `CORS_ORIGINS` documented in both `.env.example` files
+- [x] D-005 — helmet added; `x-powered-by` disabled *(headers verified in production mode)*
+- [x] D-007 — allowlist log serializer *(cookie / authorization / x-api-key verified absent)*
+
+### 1b. Handle during deployment configuration
+- [ ] D-003 — Railway pre-deploy command: `pnpm prisma:deploy`
 - [ ] D-004 — add `directUrl`; document `DIRECT_DATABASE_URL`
-- [ ] D-005 — `helmet` + disable `x-powered-by`
 - [ ] D-006 — readiness check with `SELECT 1`
-- [ ] D-007 — redact `cookie` / `authorization` in logs
 
 ### 2. Neon
 - [ ] Confirm project region matches Railway region (cross-region adds latency to every query)
@@ -180,8 +186,39 @@ Railway will treat a database-less instance as healthy and route traffic to it, 
 
 ---
 
+## Hardening Pass — Verification Record
+
+Applied as a controlled pass; **no feature development, no business-logic changes**.
+
+| Item | Verification | Result |
+|---|---|---|
+| D-001 | Deleted the generated Prisma client, ran `pnpm build` from clean | `✔ Generated Prisma Client` then `dist/server.js` produced ✅ |
+| D-002 | Cross-checked every `process.env.*` reference against both `.env.example` files | All documented, with format warnings ✅ |
+| D-005 | `curl -I` against a production-mode server | `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `X-DNS-Prefetch-Control` present; `x-powered-by` **absent** ✅ |
+| D-007 | Request carrying `Cookie`, `Authorization`, **and** `X-Api-Key`; counted occurrences in logs | **0 / 0 / 0** — logs retain only `host` + `user-agent` ✅ |
+
+**On D-007's design:** an **allowlist** was used rather than redacting known-sensitive header names. A denylist fails open — the day someone adds `x-api-key`, it leaks until a human notices. This was demonstrated concretely: the test `X-Api-Key` header appears in no denylist that would plausibly have been written, yet the allowlist blocked it automatically.
+
+### Regression Review
+
+| Check | Result |
+|---|---|
+| Business-logic files changed (`domain/`, `application/`, `infrastructure/`) | **0** — no business behaviour could have changed ✅ |
+| API tests | 25/25 ✅ |
+| Web tests | 51/51 ✅ |
+| Type-check (API + Web) | clean ✅ |
+| Production builds | both succeed ✅ |
+| Successful registration | `201` with correct body ✅ |
+| Duplicate email | `409 EMAIL_ALREADY_REGISTERED` ✅ |
+| Invalid email | `400 VALIDATION_ERROR` ✅ |
+| CORS preflight | `Access-Control-Allow-Origin` present ✅ |
+
+Changes were confined to composition (`app.ts`), logging configuration, build script, and documentation.
+
+---
+
 ## Recommendation
 
-Fix **D-001** and **D-002** at minimum — deployment cannot succeed without them. D-003 through D-007 are each modest and materially reduce first-deploy risk; D-005 and D-007 are notably cheaper now than after Phase 0 introduces authentication.
+**Ready to deploy.** D-003, D-004, and D-006 remain open by decision — each depends on the deployment environment and is best handled while configuring Railway. D-003 in particular must not be skipped: without `prisma migrate deploy`, a fresh Neon database has no `users` table and every registration returns 500.
 
 Step 5 of the runbook satisfies the deferred **browser → Neon** verification, so deploying closes that outstanding Walking Skeleton item rather than leaving it open.

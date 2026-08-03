@@ -1,11 +1,12 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { ProfileRepository } from './modules/profile/domain/ProfileRepository';
 import { createProfileRouter } from './modules/profile/routes/profile.routes';
 import { EventPublisher } from './shared/events/EventPublisher';
 import { errorHandler } from './shared/errors/errorHandler';
-import { logger } from './shared/logger';
+import { httpLoggerOptions } from './shared/logger';
 
 export interface AppDependencies {
   profileRepository: ProfileRepository;
@@ -30,9 +31,20 @@ export function createApp({
 }: AppDependencies): Express {
   const app = express();
 
+  // Suppresses the `x-powered-by: Express` response header. Volunteering the
+  // server technology only helps someone matching known Express CVEs.
+  app.disable('x-powered-by');
+
+  // Baseline security headers (HSTS, nosniff, frame-ancestors, etc.). Placed
+  // first so headers apply to every response, including errors.
+  app.use(helmet());
+
   app.use(cors({ origin: corsOrigins, credentials: true }));
   app.use(express.json());
-  app.use(pinoHttp({ logger }));
+
+  // Uses custom serializers that omit credential-bearing headers — see
+  // shared/logger for the allowlist rationale.
+  app.use(pinoHttp(httpLoggerOptions));
 
   app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok' });
