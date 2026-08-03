@@ -2,7 +2,9 @@
 
 Known technical debt, deferred decisions, and documented assumptions. Each item records what was decided, why, and when it should be revisited — so nothing is silently forgotten and no future engineer (or AI assistant) has to guess whether something was an oversight or a deliberate choice.
 
-**Status key:** 🔵 Deferred (decision made, action scheduled) · 🟡 Accepted risk (no action planned yet) · ⚪ Assumption (documented for traceability)
+**Status key:** 🔴 Blocking next phase (must be resolved before Phase 0) · 🟠 High priority (early Phase 0) · 🔵 Deferred (decision made, action scheduled) · 🟡 Accepted risk (no action planned yet) · ⚪ Assumption (documented for traceability)
+
+**Currently blocking Phase 0:** BL-008 (frontend folder convention — requires amending Canonical Architecture Specification §7).
 
 ---
 
@@ -121,3 +123,86 @@ The Express app sets no security headers (CSP, HSTS, X-Frame-Options, etc.).
 No throttling on any endpoint. `SystemDesign.md` already designates Redis for rate limiting, so the intended mechanism exists in the plan; it simply isn't wired up.
 
 **Revisit when:** Authentication Domain (Phase 0) — login and registration endpoints are the natural first targets, and BL-002's mitigation likely depends on this.
+
+---
+
+## From: Frontend Walking Skeleton Architecture Review
+
+Conclusion was ⚠️ *Approved with Minor Improvements* — no finding required changes before freeze. All items below are forward-looking: they concern scaling to Phase 0's many features rather than defects in the Walking Skeleton slice.
+
+### 🔴 BL-008 — No frontend folder-structure convention exists
+**Origin:** Frontend Walking Skeleton review, finding H1
+**Status:** Deferred — **highest priority; to be resolved before Phase 0 begins**
+**Resolution path:** amend Canonical Architecture Specification **Section 7** to formally define the frontend structure
+
+Canonical Architecture Specification §7 and `SystemDesign.md` both define only the **backend** module structure (`domain/`, `application/`, `infrastructure/`, `controller/`, …). Neither says anything about the frontend. The current layout — `app/<route>/` for routes and components, `lib/api/` for transport, `lib/validation/` for schemas — is sound, but it is undocumented and therefore unenforced.
+
+**Why this matters most:** Phase 0 adds Authentication, Community, and Event UI. Without an agreed convention, each context will structure itself differently, and retrofitting a convention across four contexts is materially more expensive than agreeing one now.
+
+**Deliberately not fixed by changing code** — the code is fine; the *specification* is silent. Aligning the two means amending the spec, which requires explicit approval (Constitution Article 8).
+
+**Next action:** a short dedicated session to define the convention, then amend §7. Scheduled to occur after the Walking Skeleton freeze and before Phase 0 implementation.
+
+---
+
+### 🟠 BL-009 — Zero component tests
+**Origin:** Frontend Walking Skeleton review, finding M1
+**Status:** Deferred — to be addressed as one of the **first Phase 0 engineering tasks**
+
+`lib/` has 51 passing tests. `app/profile/ProfileRegistrationForm.tsx` has **none**. Every UI state (loading, success, error, validation) was verified manually in a browser.
+
+**Evidence the risk is real, not theoretical:** during Step 7, a stale placeholder (*"Result panel — implemented in Step 7."*) rendered on the page while **every programmatic DOM assertion passed**. Only a screenshot caught it. Automated component tests would have caught the regression that assertions missed.
+
+This was a deliberate deferral recorded in the frontend plan (§14: "Component-level rendering tests are deliberately excluded — that's a heavier dependency set than a wiring proof warrants"). That reasoning held for a wiring proof; it does not hold for feature development.
+
+**Next action:** establish the frontend testing strategy (likely Testing Library + jsdom) early in Phase 0, before multiple feature UIs exist.
+
+---
+
+### 🟠 BL-010 — Request cancellation supported but unused
+**Origin:** Frontend Walking Skeleton review, finding M2
+**Status:** Deferred — implement when navigation and multiple pages exist
+
+`lib/api/profileClient.ts` accepts an `AbortSignal`, and `lib/api/http.ts` already combines it with the client-side timeout via `AbortSignal.any()`. The form never passes one.
+
+**Consequence:** navigating away mid-request leaves an orphaned in-flight request and triggers a state update on an unmounted component — wasted work rather than a user-visible bug.
+
+**Why it's low impact today:** the Walking Skeleton has exactly one page and no navigation, so there is nowhere to navigate away *to*.
+
+**Next action:** wire an `AbortController` (cleared on unmount) once Phase 0 introduces routing between pages. The transport plumbing already exists, so this is a small change confined to components.
+
+---
+
+### 🟡 BL-011 — No internationalisation foundation
+**Origin:** Frontend Walking Skeleton review, finding L1
+**Status:** Deferred — record as a **Phase 0 architectural decision**; no implementation work now
+
+13 user-facing English strings are hardcoded across `errorMessages.ts`, `registerProfileSchema.ts`, and `ProfileRegistrationForm.tsx`.
+
+**Why worth deciding early:** Chapter 8 of the Product Bible explicitly targets *"a national conference"* and *"an international summit."* Retrofitting i18n across many features is substantially more expensive than establishing the pattern before those features exist. Note that error copy is already centralised in `errorMessages.ts`, which is a favourable starting point.
+
+**Next action:** a Phase 0 architectural decision on whether (and when) to adopt an i18n library. Deciding "not yet, and here's the trigger" is an acceptable outcome — the point is to decide deliberately rather than by default.
+
+---
+
+### 🟡 BL-012 — Raw ISO timestamp rendered in UI
+**Origin:** Frontend Walking Skeleton review, finding L2
+**Status:** Accepted for the Walking Skeleton — address during real feature development
+
+The success panel renders `createdAt` verbatim (e.g. `2026-08-03T06:30:59.055Z`).
+
+**Why acceptable now:** the raw value is genuinely *useful* for a verification artifact — it makes the round trip inspectable. It is not acceptable for user-facing product UI.
+
+**Next action:** introduce presentation-layer date formatting when the first real feature UI is built. Any locale-aware formatting choice should be made together with BL-011 (i18n), since the two are coupled.
+
+---
+
+### 🟡 BL-013 — No code formatter configured
+**Origin:** Frontend Walking Skeleton review, finding L3
+**Status:** Deferred — **Phase 0 engineering task**
+
+Quote style is already inconsistent: `lib/api/http.ts` and `lib/api/config.ts` use single quotes; every other frontend file uses double. ESLint is configured but performs no formatting.
+
+**Why worth doing before the codebase grows:** a formatter introduced later produces a large mechanical diff across every file, which obscures real changes in review history. Introducing it while the codebase is small keeps that diff trivial.
+
+**Next action:** add Prettier (with an ESLint integration that avoids rule conflicts) as part of standard frontend tooling early in Phase 0.

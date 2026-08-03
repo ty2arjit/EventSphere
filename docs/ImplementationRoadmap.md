@@ -220,7 +220,7 @@ This section applies Constitution Articles 41 (Mandatory Quality Gates) and 42 (
 
 ### 3.1 Walking Skeleton
 
-**Backend portion: ✅ FROZEN** (approved by project owner following the structured architecture review). Frontend portion in progress. See 3.1.1 for the freeze record.
+**STATUS: ✅ COMPLETE (FROZEN)** — backend and frontend both frozen following structured architecture reviews. One deferred infrastructure confirmation remains outstanding (browser → Neon); see 3.1.2. Freeze records: 3.1.1 (backend), 3.1.2 (frontend).
 
 **Objectives:** Prove the full stack wires together correctly, on real deployed infrastructure, before committing to the 19-item build order.
 
@@ -277,6 +277,47 @@ This section applies Constitution Articles 41 (Mandatory Quality Gates) and 42 (
 **Freeze scope:** the backend vertical slice only. Changes to frozen backend code now require the same explicit-approval discipline applied to architecture documents — raise the issue rather than modifying it silently.
 
 **Remaining for full Walking Skeleton completion:** frontend slice, and deployment to Vercel + Railway/Render (the Section 3.1 acceptance criteria explicitly require deployed infrastructure, not localhost).
+
+---
+
+#### 3.1.2 Frontend Portion — Freeze Record
+
+**Status: FROZEN.** Approved by the project owner after a structured architecture review against all four governing documents. Review conclusion: **⚠️ Approved with Minor Improvements** — no finding required changes before freeze.
+
+**Delivered across 10 sequenced steps**, each individually reviewed and approved:
+
+| Step | Delivered |
+|---|---|
+| 1 | Project setup — Next.js 16 / Tailwind v4 / shadcn on Base UI; fixed workspace-root misdetection and `.env*.example` tracking |
+| 2 | Typed API client — centralised transport, discriminated-union results, classified errors, timeout |
+| 3 | `/profile` Server Component page shell |
+| 4 | `ProfileRegistrationForm` client boundary with React Hook Form |
+| 5 | Zod validation, verified at **parity with backend domain rules (0/12 mismatches)** |
+| 6 | API integration incl. first real **CORS preflight** verification |
+| 7 | Loading / success / error states with centralised error-code → copy mapping |
+| 8 | End-to-end — browser → API → backend verified; browser → Neon **deferred** |
+| 9 | Architecture review |
+| 10 | Freeze |
+
+**Verification evidence at time of freeze:**
+
+| Check | Result |
+|---|---|
+| Frontend tests | 51/51 passing |
+| Type-check / lint / production build | Clean / clean / passing |
+| Server vs Client boundary | Only `ProfileRegistrationForm.tsx` is `'use client'`; `/profile` still builds as `○ (Static)` |
+| Dependency direction | Acyclic, inward-only; `lib/` never imports `app/` |
+| Framework independence | `lib/api` and `lib/validation` import zero React/Next |
+| Constitution | Zero violations (Articles 11, 21, 22, 23, 27, 28, 29, 37, 6 all verified) |
+| Security | No `dangerouslySetInnerHTML`; React escaping intact; only `NEXT_PUBLIC_*` env access; raw backend messages never rendered |
+| Client/server validation parity | 12 inputs, 0 mismatches |
+| CORS preflight | `OPTIONS → 204` from a real browser |
+
+**Findings recorded, none blocking the freeze:** BL-008 (frontend folder convention — **blocks Phase 0**), BL-009 (component tests), BL-010 (request cancellation), BL-011 (i18n decision), BL-012 (timestamp formatting), BL-013 (formatter).
+
+**Deferred infrastructure confirmation — browser → Neon.** The final assertion in Section 3.1's acceptance criteria (a browser-originated request creating a row in the deployed database) is outstanding because the available network blocks outbound port 5432. Deferred by explicit project-owner decision. **Not a feature dependency:** the database path is independently proven by 3/3 repository integration tests against live Neon and by the full-stack check recorded in 3.1.1. To be executed and recorded as a closing checkpoint when network access allows.
+
+**Also outstanding from Section 3.1's acceptance criteria:** deployment to Vercel + Railway/Render. All verification to date ran against locally-served apps plus (where reachable) the real Neon database.
 
 ---
 

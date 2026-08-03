@@ -180,7 +180,37 @@ Approved by project owner. Delivered `lib/validation/registerProfileSchema.ts` (
 
 **Verification-method lesson:** the browser tool's `form_input` sets `.value` via the DOM, which React/RHF does not observe, producing a false "validation bug" signal. Real keyboard/click events must be used for anything React-stateful.
 
-### ⏳ Step 6 — API Integration (in progress)
+### ✅ Step 6 — API Integration (FROZEN)
+
+Approved by project owner. `onSubmit` wired to `registerProfile()`, both `ApiResult` branches handled explicitly (convention 11.5).
+
+**Verified in-browser against the live backend** — including the **CORS preflight** (`OPTIONS → 204`), exercised for the first time here (supertest and server-to-server calls don't trigger preflight). `POST → 201` on success, `→ 409` on duplicate; backend domain event fired with `userId` matching the response `id`; no console errors.
+
+### ✅ Step 7 — Loading, Success & Error States (FROZEN)
+
+Approved by project owner. Delivered `lib/api/errorMessages.ts` (centralised code → copy mapping, feature overrides with kind-based fallbacks) plus loading/success/error presentation.
+
+**Design decisions endorsed in review:** loading derived from RHF `isSubmitting` rather than duplicated state; outcome modelled as a discriminated union so contradictory states are unrepresentable; persistent live region (a conditionally-mounted region would silently drop screen-reader announcements).
+
+**All three states browser-verified:** loading captured mid-flight via `MutationObserver` (`"Registering…"`, button disabled, `aria-busy="true"`, inputs disabled); success panel with all four fields; conflict error showing mapped copy; network error with the backend stopped. Convention 11.3 verified — the backend's raw message and the submitted email are both absent from displayed error text.
+
+**Bug caught by visual verification:** a stale Step 3 placeholder (*"Result panel — implemented in Step 7."*) was still rendering in `page.tsx` while **every programmatic DOM assertion passed**. Only a screenshot exposed it. Recorded as evidence in BL-009 (component tests).
+
+### ⏭️ Step 8 — End-to-End Verification (PARTIALLY DEFERRED)
+
+Browser → API → backend fully verified (Steps 6–7). The remaining **browser → Neon** assertion is deferred by project-owner decision pending network access to Neon; the router in use blocks outbound port 5432.
+
+**Not a feature dependency.** The database path is already independently proven: 3/3 repository integration tests against live Neon, plus a full-stack check during the backend freeze confirming a real row with matching IDs. What remains is confirming that same path once *through the browser* — an infrastructure confirmation, not unvalidated functionality.
+
+### ✅ Step 9 — Frontend Architecture Review (COMPLETE)
+
+Conclusion: **⚠️ Approved with Minor Improvements**. Zero Constitution violations; dependency direction verified acyclic and inward-only; `lib/api` and `lib/validation` confirmed framework-free; no `any`; React auto-escaping intact; only `NEXT_PUBLIC_*` env access.
+
+All six findings are forward-looking (scaling to Phase 0) rather than defects in this slice, and are recorded as **BL-008 … BL-013**. BL-008 (no frontend folder convention) is flagged as **blocking Phase 0** and will be resolved by amending Canonical Architecture Specification §7.
+
+### ✅ Step 10 — Frontend Walking Skeleton (FROZEN)
+
+Frozen by project owner following the Step 9 review. Changes to frozen frontend code now require the same explicit-approval discipline applied to the backend and to architecture documents — raise the issue rather than modifying silently.
 
 ---
 
