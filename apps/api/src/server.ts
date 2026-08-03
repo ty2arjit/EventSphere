@@ -24,6 +24,12 @@ const app = createApp({
   profileRepository: new PrismaProfileRepository(prisma),
   eventPublisher,
   corsOrigins,
+  // Cheapest possible round trip that proves the connection is live. Prisma
+  // lazily connects, so a failure here is the genuine article rather than a
+  // stale cached status.
+  checkDatabase: async () => {
+    await prisma.$queryRaw`SELECT 1`;
+  },
 });
 
 const server = app.listen(port, () => {

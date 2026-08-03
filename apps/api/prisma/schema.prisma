@@ -8,7 +8,24 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+
+  // Runtime queries. Use Neon's POOLED connection string — pooling is what
+  // makes many short-lived serverless/container connections viable.
+  url = env("DATABASE_URL")
+
+  // Migrations only. Use Neon's DIRECT connection string.
+  //
+  // Migrations issue DDL and rely on session-level state (advisory locks,
+  // prepared statements) that PgBouncer's transaction pooling does not
+  // preserve, so running them through the pooled URL is unreliable.
+  //
+  // REQUIRED — not optional. Prisma resolves this at schema-load time and
+  // fails with P1012 ("Environment variable not found") if it is missing,
+  // even for commands that never open a connection. It must be set in every
+  // environment, including local development.
+  //
+  // For Neon, the direct host is the pooled host with `-pooler` removed.
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model User {
