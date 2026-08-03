@@ -1,32 +1,22 @@
 /**
- * Transport-level types for communicating with the EventSphere API.
+ * Transport primitives for communicating with the EventSphere API.
  *
- * These describe the HTTP contract only — they are NOT domain models. Business
- * rules live in the backend's Domain layer; this file exists so the UI can
- * consume responses type-safely without duplicating any business logic
- * (Constitution Article 29: React owns presentation only).
+ * SCOPE (canonical frontend convention, rule 4): this file holds ONLY
+ * context-agnostic transport types. Endpoint-specific request/response models
+ * belong to the owning feature (`features/<context>/types/`).
  *
- * Types are hand-written rather than imported from `apps/api`. Reaching into
- * the backend's internals would couple the frontend to its implementation and
- * break the API-First boundary in SystemDesign.md — the HTTP contract is the
- * integration point, not the code.
+ * These describe the HTTP contract, never domain models. Business rules live in
+ * the backend's Domain layer; nothing here duplicates them (Constitution
+ * Article 29).
  */
-
-/** Success payload of `POST /api/v1/profile`. Mirrors the backend's ProfileResponseDto. */
-export interface ProfileResponse {
-  id: string;
-  email: string;
-  name: string;
-  createdAt: string;
-}
 
 /**
  * Transport-level failure classification.
  *
  * Deliberately mirrors the backend's own `DomainErrorKind` philosophy: describe
  * WHAT went wrong in stable terms, and let the presentation layer decide how to
- * say it. Adding NETWORK/TIMEOUT/UNKNOWN covers failures that never reach the
- * server and therefore have no backend representation.
+ * say it. NETWORK/TIMEOUT/UNKNOWN cover failures that never reach the server and
+ * therefore have no backend representation.
  */
 export type ApiErrorKind =
   | 'VALIDATION' // 400 — malformed request

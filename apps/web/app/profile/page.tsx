@@ -6,7 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ProfileRegistrationForm } from "./ProfileRegistrationForm";
+// Imported through the feature's public interface, never from its internals.
+import { ProfileRegistrationForm } from "@/features/profile";
 
 /**
  * `/profile` — Walking Skeleton route.

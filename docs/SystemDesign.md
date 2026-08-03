@@ -64,6 +64,26 @@ Business rules always flow inward. Infrastructure never owns business logic.
 | Icons | Lucide React |
 | Authentication Client | JWT via HTTP-only cookies |
 
+### Frontend Structure
+
+Governed by **Canonical Architecture Specification §7.5**. Summary:
+
+```text
+apps/web/
+├── app/         # routing + composition only
+├── features/    # one module per bounded context, canonical names, public index.ts
+├── lib/         # context-agnostic infrastructure (transport, utils)
+└── components/  # truly shared UI (shadcn primitives, layout, common)
+```
+
+Four binding rules (full detail in §7.5):
+1. `features/*` names match canonical bounded-context names **exactly** — no aliases, abbreviations, or plurals. Route segments may differ; feature names may not.
+2. `lib/` is strictly infrastructure. If a file cannot be described without naming a bounded context, it belongs in that context's feature module. `lib/auth/` is prohibited — it would compete with `features/authentication/`.
+3. Composite Product Experiences (§4) are assembled in `app/` from feature public interfaces; they own no business logic and create no new ownership boundary.
+4. `lib/api/types.ts` holds transport primitives only; endpoint models live in `features/<context>/types/`.
+
+Each feature's `index.ts` is its published interface — the frontend equivalent of bounded-context isolation (Constitution Article 12). Importing from a feature's internals is a violation.
+
 ## Backend
 
 | Concern | Choice |

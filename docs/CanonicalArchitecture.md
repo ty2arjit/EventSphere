@@ -528,7 +528,7 @@ These contexts have no formal "Publishes/Consumes Domain Events" section in thei
 
 ## 7. Canonical Folder Structure
 
-**Section status: Approved, Frozen.**
+**Section status: Approved, Frozen. Amended once — §7.5 (frontend structure) added; see 7.5.5.**
 
 This section supersedes Chapter 44's example folder structure, which was found during the original review to re-encode the exact over-consolidation errors corrected in Sections 1 and 4 of this specification (a single `operations/` folder for Committee + Volunteer + Sponsorship; a single `intelligence/` folder for Intelligence + Recommendation; a single `identity/` folder for Authentication + Authorization + Profile). The structure below has one folder per bounded context confirmed in Section 1.1 — no exceptions.
 
@@ -610,7 +610,89 @@ Composite Product Experiences (Section 4: Event Operations, User Profiles & Prof
 
 A dedicated `composite-experiences/` directory was deliberately rejected — introducing a separate module for these would create artificial ownership and blur the bounded-context boundaries this entire specification exists to keep explicit.
 
-### 7.5 Future / Planned Bounded Contexts — Reserved, Not Created
+### 7.5 Frontend Folder Structure (`apps/web`)
+
+*Added by amendment — see 7.5.5. Sections 7.1–7.4 above govern the backend (`apps/api`); this section governs the frontend.*
+
+The frontend mirrors the backend's explicit-ownership property: each bounded context owns a **feature module**, and nothing outside that module may reach into its internals.
+
+```text
+apps/web/
+├── app/                          # App Router — routing and page composition ONLY
+│   ├── profile/
+│   ├── events/
+│   └── …
+├── features/                     # One module per bounded context
+│   └── <canonical-context-name>/
+│       ├── api/                  # endpoint declarations for this context
+│       ├── components/           # UI owned by this context
+│       ├── hooks/                # stateful logic owned by this context
+│       ├── types/                # request/response + UI models for this context
+│       ├── validation/           # Zod schemas for this context
+│       └── index.ts              # PUBLIC INTERFACE — the only import surface
+├── lib/                          # Context-agnostic infrastructure
+│   ├── api/                      # transport: http, config, error classification
+│   └── utils/
+├── components/                   # Truly shared UI
+│   ├── ui/                       # shadcn primitives
+│   ├── layout/
+│   └── common/
+├── styles/
+└── public/
+```
+
+#### 7.5.1 Rule 1 — Feature names match canonical context names exactly
+
+`features/*` directory names use the §7.1 names **verbatim** — no aliases, abbreviations, or plurals.
+
+Route segments under `app/` are a **UX concern** and may differ (`/events` may read better than `/event`), but the feature they import from is always the canonical name.
+
+| ✅ Correct | ❌ Incorrect | Why |
+|---|---|---|
+| `features/authentication/` | `features/auth/` | Abbreviation |
+| `features/event/` | `features/events/` | Plural |
+| `features/participation/` | `features/registration/` | **Registration is an aggregate inside Participation Management (§2.1), not a bounded context.** A `features/registration/` module would silently reintroduce a boundary this specification explicitly closed |
+
+#### 7.5.2 Rule 2 — `lib/` is strictly infrastructure
+
+`lib/` holds only context-agnostic capability. Anything containing a business concept belongs to its owning feature.
+
+**Test:** if a file cannot be described without naming a bounded context, it does not belong in `lib/`.
+
+| Concern | Home | Reason |
+|---|---|---|
+| Attaching an auth token to outbound requests | `lib/api/` | Transport mechanics; no business meaning |
+| Login form, session hooks, auth state | `features/authentication/` | Knows what a user and a session are |
+| HTTP classification, timeouts, result types | `lib/api/` | Applies to every context identically |
+| Endpoint declarations for one context | `features/<context>/api/` | Specific to that context's contract |
+
+A `lib/auth/` directory is **prohibited** — it would compete with `features/authentication/` for the same ownership, violating Constitution Article 7.
+
+#### 7.5.3 Rule 3 — Composite Product Experiences live in `app/`
+
+The Composite Product Experiences defined in §4 (Event Workspace, User Profile Experience, Discovery & Engagement) span multiple contexts and, per §7.4, get **no module of their own**.
+
+They are assembled in `app/` by importing each contributing feature's public `index.ts`. A composite page **owns no business logic and establishes no new ownership boundary** — every piece of data remains owned by its contributing context.
+
+This prevents the failure mode where, say, Event Workspace is placed in `features/event/` and quietly acquires ownership of Committee, Volunteer, and Announcement data.
+
+#### 7.5.4 Rule 4 — Type placement splits by responsibility
+
+| Type | Home |
+|---|---|
+| `ApiResult`, `ApiError`, `ApiErrorKind` — transport primitives | `lib/api/types.ts` |
+| Endpoint request/response models (e.g. `ProfileResponse`) | `features/<context>/types/` |
+| UI-only view models | `features/<context>/types/` |
+
+#### 7.5.5 Amendment Record
+
+| Trigger | Change |
+|---|---|
+| Frontend Walking Skeleton architecture review (finding H1 / backlog BL-008) | Added §7.5. Before this amendment the specification defined **only** backend structure; the frontend had grown without a documented convention. Approved by project owner, with all four rules adopted as canonical. The existing Profile implementation was migrated to conform at the same time, so the convention is validated against real code rather than frozen untested. |
+
+---
+
+### 7.6 Future / Planned Bounded Contexts — Reserved, Not Created
 
 Per Section 1.2, these contexts are not yet domain-modeled. No folders are created for them yet; they are listed here only so the eventual namespace is documented and doesn't need to be redebated later.
 

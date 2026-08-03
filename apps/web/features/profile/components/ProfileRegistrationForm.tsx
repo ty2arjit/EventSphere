@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/api/errorMessages";
-import { registerProfile } from "@/lib/api/profileClient";
-import type { ProfileResponse } from "@/lib/api/types";
+import { registerProfile } from "../api/profileClient";
+import type { ProfileResponse } from "../types";
 import {
   registerProfileSchema,
   type RegisterProfileFormInput,
   type RegisterProfileFormValues,
-} from "@/lib/validation/registerProfileSchema";
+} from "../validation/registerProfileSchema";
 
 /**
  * Interactive registration form — the Client Component boundary for `/profile`.

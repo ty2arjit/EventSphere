@@ -1,19 +1,14 @@
-import { request } from './http';
-import { ApiResult, ProfileResponse } from './types';
+import { request } from '@/lib/api/http';
+import type { ApiResult } from '@/lib/api/types';
+import type { ProfileResponse, RegisterProfileInput } from '../types';
 
 /**
- * The frontend's single gateway to the Profile endpoints.
+ * Profile feature's gateway to its own API endpoints.
  *
  * Contains no business logic and no validation of its own — it declares the
- * endpoint contract and delegates all transport concerns to `request()`.
+ * endpoint contract and delegates all transport concerns to `lib/api/http`.
  * Validation belongs to Zod (UX) and the backend Domain layer (authoritative).
  */
-
-export interface RegisterProfileInput {
-  email: string;
-  name: string;
-}
-
 export function registerProfile(
   input: RegisterProfileInput,
   options: { signal?: AbortSignal } = {},
