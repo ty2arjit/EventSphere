@@ -220,7 +220,7 @@ This section applies Constitution Articles 41 (Mandatory Quality Gates) and 42 (
 
 ### 3.1 Walking Skeleton
 
-**STATUS: ✅ COMPLETE (FROZEN)** — backend and frontend both frozen following structured architecture reviews. One deferred infrastructure confirmation remains outstanding (browser → Neon); see 3.1.2. Freeze records: 3.1.1 (backend), 3.1.2 (frontend).
+**STATUS: ✅ COMPLETE — deployed and verified end-to-end** (2026-08-06). Backend and frontend both frozen following structured architecture reviews; deployed to Railway/Vercel/Neon; the previously-deferred browser → Neon confirmation is now closed. Freeze records: 3.1.1 (backend), 3.1.2 (frontend).
 
 **Objectives:** Prove the full stack wires together correctly, on real deployed infrastructure, before committing to the 19-item build order.
 
@@ -235,15 +235,17 @@ This section applies Constitution Articles 41 (Mandatory Quality Gates) and 42 (
 **Dependencies:** None — this is the first thing built.
 
 **Quality Gates:**
-- [ ] Domain layer has zero imports of Prisma, Express, or any frontend library (Constitution Article 11)
-- [ ] Repository is the only code that calls Prisma (Article 16, 22)
-- [ ] Controller contains no business logic, only request translation (Article 15)
-- [ ] No `any` types used without explicit approval (Article 27)
-- [ ] At least one Domain unit test and one integration test (hitting the real deployed endpoint) exist
+- [x] Domain layer has zero imports of Prisma, Express, or any frontend library (Constitution Article 11)
+- [x] Repository is the only code that calls Prisma (Article 16, 22)
+- [x] Controller contains no business logic, only request translation (Article 15)
+- [x] No `any` types used without explicit approval (Article 27)
+- [x] At least one Domain unit test and one integration test (hitting the real deployed endpoint) exist
 
 **Acceptance Criteria:** A request made against the **deployed** frontend URL creates a real row in the **deployed** Postgres database, and the created profile renders on screen — proving Next.js → Express → Application Service → Domain → Repository → Prisma → PostgreSQL → response → UI all connect correctly in production, not just localhost.
 
-**Definition of Done:** All Quality Gates checked, acceptance criteria demonstrated end-to-end on deployed infrastructure, code reviewed against Constitution Articles 11–16 and 21–22. Only after this is Phase 0 allowed to begin.
+**✅ MET — verified 2026-08-06.** Live browser test against `https://event-sphere-web.vercel.app/profile`: form submission fetched `https://eventsphere-production-4554.up.railway.app/api/v1/profile`, returned `201`, and the UI rendered "Profile registered" with a persisted `id`, `name`, `email`, and `createdAt`. No CORS errors. This closes both items deferred in 3.1.2 (browser → Neon; deployed-infrastructure acceptance criteria) in a single check, since `/ready` had already confirmed Railway ↔ Neon connectivity.
+
+**Definition of Done:** All Quality Gates checked, acceptance criteria demonstrated end-to-end on deployed infrastructure, code reviewed against Constitution Articles 11–16 and 21–22. **Met — Walking Skeleton complete.** Phase 0 may now begin.
 
 ---
 
@@ -315,9 +317,9 @@ This section applies Constitution Articles 41 (Mandatory Quality Gates) and 42 (
 
 **Findings recorded, none blocking the freeze:** BL-008 (frontend folder convention — **blocks Phase 0**), BL-009 (component tests), BL-010 (request cancellation), BL-011 (i18n decision), BL-012 (timestamp formatting), BL-013 (formatter).
 
-**Deferred infrastructure confirmation — browser → Neon.** The final assertion in Section 3.1's acceptance criteria (a browser-originated request creating a row in the deployed database) is outstanding because the available network blocks outbound port 5432. Deferred by explicit project-owner decision. **Not a feature dependency:** the database path is independently proven by 3/3 repository integration tests against live Neon and by the full-stack check recorded in 3.1.1. To be executed and recorded as a closing checkpoint when network access allows.
+**Deferred infrastructure confirmation — browser → Neon. RESOLVED 2026-08-06.** The final assertion in Section 3.1's acceptance criteria (a browser-originated request creating a row in the deployed database) was outstanding because the available network blocked outbound port 5432. It is now closed: see the verification evidence recorded in Section 3.1 above (deployed Vercel frontend → deployed Railway backend → Neon, full round trip, `201` + rendered UI).
 
-**Also outstanding from Section 3.1's acceptance criteria:** deployment to Vercel + Railway/Render. All verification to date ran against locally-served apps plus (where reachable) the real Neon database.
+**Deployment — RESOLVED 2026-08-06.** Frontend deployed to Vercel (`https://event-sphere-web.vercel.app`), backend deployed to Railway (`https://eventsphere-production-4554.up.railway.app`), database on Neon. `NEXT_PUBLIC_API_URL` and `CORS_ORIGINS` correctly configured after two redeploy iterations (first attempt served a stale build without the env var inlined). Walking Skeleton is now fully complete on deployed infrastructure, closing out Section 3.1 entirely.
 
 ---
 
