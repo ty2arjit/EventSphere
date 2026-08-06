@@ -1,6 +1,7 @@
-// Walking Skeleton schema — minimal only.
-// Full Profile Domain schema (UserProfile, UserPreferences, etc.) arrives in Phase 0.
-// See docs/plans/00-walking-skeleton.md Section 4.
+// Full Profile Domain schema (Ch.19) — Phase 0. UserProfile and UserPreferences
+// are Owned Entities (not Value Objects), each backed by its own 1:1 table
+// keyed by userId rather than a synthetic id — nothing references them
+// independently of their owning User (Constitution Article 37).
 
 generator client {
   provider = "prisma-client-js"
@@ -29,11 +30,43 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(uuid())
+  email      String    @unique
+  name       String
+  status     String    @default("registered")
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  profile     UserProfile?
+  preferences UserPreferences?
 
   @@map("users")
+}
+
+model UserProfile {
+  userId         String  @id
+  avatarUrl      String?
+  bio            String?
+  headline       String?
+  institution    String?
+  department     String?
+  graduationYear Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserPreferences {
+  userId        String  @id
+  language      String  @default("en")
+  timezone      String  @default("UTC")
+  theme         String  @default("system")
+  notifyByEmail Boolean @default(true)
+  notifyInApp   Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
 }

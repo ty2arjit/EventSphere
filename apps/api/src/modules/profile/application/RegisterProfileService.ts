@@ -1,5 +1,6 @@
 import { ProfileRepository } from '../domain/ProfileRepository';
 import { User } from '../domain/User';
+import { Email } from '../domain/valueObjects/Email';
 import { EventPublisher } from '../../../shared/events/EventPublisher';
 import { UniqueConstraintViolationError } from '../../../shared/errors/UniqueConstraintViolationError';
 import { EmailAlreadyRegisteredError } from './errors';
@@ -21,12 +22,18 @@ export class RegisterProfileService {
   ) {}
 
   async execute(input: RegisterProfileInput): Promise<User> {
-    const existing = await this.profileRepository.findByEmail(input.email.trim().toLowerCase());
+    // Email.create() is the single source of truth for normalization
+    // (Constitution Article 6) — used here for the duplicate check AND
+    // inside User.register() below, instead of each duplicating the logic
+    // (TECHNICAL_BACKLOG.md BL-001).
+    const email = Email.create(input.email);
+
+    const existing = await this.profileRepository.findByEmail(email.value);
     if (existing) {
       throw new EmailAlreadyRegisteredError(input.email);
     }
 
-    const user = User.register(input.email, input.name);
+    const user = User.register(email.value, input.name);
 
     try {
       await this.profileRepository.save(user);

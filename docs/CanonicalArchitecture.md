@@ -78,7 +78,7 @@ These aggregates have a full contract in source (aggregate root, consistency bou
 
 | Aggregate Root | Bounded Context | Classification | Owned Entities | Key Value Objects | Source Chapter |
 |---|---|---|---|---|---|
-| User | Profile Domain | Transactional Aggregate | UserProfile, UserPreferences | FullName, Avatar, SocialLinks (future) | Ch.19 |
+| User | Profile Domain | Transactional Aggregate | UserProfile, UserPreferences | Email, FullName, Avatar, SocialLinks (future) | Ch.19 |
 | UserCredential | Authentication Domain | Transactional Aggregate | Authentication Sessions, Verification Tokens, Authentication Provider | — | Ch.20 |
 | PermissionPolicy | Authorization Domain | Policy Aggregate | Permission, PermissionGrant | ContextLevel, ResponsibilityReference, AuthorizationDecision | Ch.21 (structure formalized in this specification — see 2.1.1) |
 | Community | Community Domain | Transactional Aggregate | CommunityMember, CommunityPosition, CommunityInvitation, CommunitySettings | — | Ch.18 |
@@ -442,7 +442,7 @@ Ch.36 (Intelligence Domain) and Ch.37 (Recommendation Domain) both listed **"Rec
 
 ### 6.1 Confirmed Domain Events
 
-Only bounded contexts with a formal Aggregate Contract (an explicit "Publishes Domain Events" / "Consumes Domain Events" pair in source) are catalogued here: Community Domain (Ch.18), Event Management (Ch.22/23), Session (Ch.25), Registration (Ch.26), Enrollment (Ch.27), Attendance (Ch.28), Certificate (Ch.29), Announcement (Ch.30). This reflects two prior resolutions: `EventStarted` is included in Event Management's published list (Ch.22/23 resolution), and `RecognitionApproved` is removed from Certificate's consumed list (Ch.29 resolution — documentation artifact).
+Only bounded contexts with a formal Aggregate Contract (an explicit "Publishes Domain Events" / "Consumes Domain Events" pair in source) are catalogued here: Community Domain (Ch.18), Event Management (Ch.22/23), Session (Ch.25), Registration (Ch.26), Enrollment (Ch.27), Attendance (Ch.28), Certificate (Ch.29), Announcement (Ch.30), Profile Domain (Ch.19, formalized during Phase 0 implementation — see 6.2.3). This reflects three prior resolutions: `EventStarted` is included in Event Management's published list (Ch.22/23 resolution), `RecognitionApproved` is removed from Certificate's consumed list (Ch.29 resolution — documentation artifact), and Profile Domain's event contract was defined during implementation rather than in Ch.19's original text (6.2.3 resolution).
 
 | Domain Event | Published By | Known Consumer(s) | Source |
 |---|---|---|---|
@@ -492,6 +492,12 @@ Only bounded contexts with a formal Aggregate Contract (an explicit "Publishes D
 | AnnouncementPublished | Announcement Domain | — | Ch.30 |
 | AnnouncementUpdated | Announcement Domain | — | Ch.30 |
 | AnnouncementArchived | Announcement Domain | — | Ch.30 |
+| ProfileRegistered | Profile Domain | — | Phase 0 implementation (6.2.3 resolution) |
+| ProfileUpdated | Profile Domain | — | Phase 0 implementation (6.2.3 resolution) |
+| AvatarChanged | Profile Domain | — | Phase 0 implementation (6.2.3 resolution) |
+| PreferencesUpdated | Profile Domain | Notification Domain (future — Notification remains Event Modeling Pending; not yet a formal consumer) | Phase 0 implementation (6.2.3 resolution) |
+| ProfileVerified | Profile Domain | — | Phase 0 implementation (6.2.3 resolution) |
+| ProfileDeactivated | Profile Domain | — | Phase 0 implementation (6.2.3 resolution) |
 
 "Known Consumer(s)" reflects only consumption explicitly stated in another context's own "Consumes Domain Events" list — a blank entry means no other cataloged context declares itself a consumer, not that none exists.
 
@@ -501,6 +507,7 @@ Only bounded contexts with a formal Aggregate Contract (an explicit "Publishes D
 |---|---|---|
 | 6.2.1 | Phantom event: `CommunityArchived` (consumed by Event Management, never published by Community Domain) | Removed. No new publisher introduced — community archival is an administrative lifecycle action and does not require Event Management to react through the event bus. Event Management's Consumes list no longer includes this entry. |
 | 6.2.2 | Naming mismatch: `CommunityOwnershipTransferred` (Event Management's expectation) vs. `OwnershipTransferred` (Community Domain's Ch.18 wording) | Canonical name is **`CommunityOwnershipTransferred`** — explicit, unambiguous naming is preferred given the event bus is global across bounded contexts. Community Domain's published-events list (6.1) updated accordingly; Ch.18's original wording "OwnershipTransferred" is superseded by this specification, per the Authority statement. |
+| 6.2.3 | Profile Domain (Ch.19) formalized as an event publisher during its Phase 0 full-scope implementation, moving it out of §6.3's "Event Modeling Pending" list. Six events defined: `ProfileRegistered` (already implemented at Walking Skeleton time), `ProfileUpdated`, `AvatarChanged`, `PreferencesUpdated`, `ProfileVerified`, `ProfileDeactivated`. `ProfileArchived` was deliberately NOT added — no confirmed cross-context consumer exists yet for the `archive()` lifecycle transition (Constitution Article 37, minimize concepts); the method exists on the aggregate and an event can be added later without rework. | This specification's §6.1 table is the authoritative record; §2.1's aggregate inventory for `User` is unaffected by this change (events are a separate concern from aggregate structure). |
 
 ### 6.3 Bounded Contexts Classified as Event Modeling Pending
 
@@ -508,7 +515,6 @@ These contexts have no formal "Publishes/Consumes Domain Events" section in thei
 
 | Bounded Context | Source Chapter | Status |
 |---|---|---|
-| Profile Domain | Ch.19 | Event Modeling Pending |
 | Authentication Domain | Ch.20 | Event Modeling Pending |
 | Authorization Domain | Ch.21 / 2.1.1 | Event Modeling Pending (including `PermissionGrant` create/revoke, despite `PermissionPolicy` being formalized as a full aggregate in this specification) |
 | Committee Domain | Ch.32 | Event Modeling Pending |

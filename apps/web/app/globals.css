@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -48,73 +48,92 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * EventSphere visual identity — "Indigo & Amber" (Canonical Architecture
+ * §7.5 UI layer). Deep indigo + warm amber, chosen for the academic/
+ * community audience: institutional without being cold, warm off-white
+ * base rather than stark white. Light mode leads with indigo as primary
+ * and amber as the accent; dark mode inverts that pairing (amber reads
+ * better as the dominant color against a near-black ground) so the same
+ * two hues carry the identity in both themes rather than one theme being
+ * a flat inversion of the other.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: #fbf9f4;
+  --foreground: #221c10;
+  --card: #fffdf9;
+  --card-foreground: #221c10;
+  --popover: #fffdf9;
+  --popover-foreground: #221c10;
+  --primary: #1e2350;
+  --primary-foreground: #fbf6e8;
+  --secondary: #f1ead9;
+  --secondary-foreground: #221c10;
+  --muted: #f3ede0;
+  --muted-foreground: #7c7263;
+  --accent: #c9852c;
+  --accent-foreground: #2b1c04;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: #e6dfd0;
+  --input: #e6dfd0;
+  --ring: #1e2350;
+  --chart-1: #1e2350;
+  --chart-2: #c9852c;
+  --chart-3: #7c7263;
+  --chart-4: #a9762a;
+  --chart-5: #2f3573;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #f3ede0;
+  --sidebar-foreground: #221c10;
+  --sidebar-primary: #1e2350;
+  --sidebar-primary-foreground: #fbf6e8;
+  --sidebar-accent: #f1ead9;
+  --sidebar-accent-foreground: #221c10;
+  --sidebar-border: #e6dfd0;
+  --sidebar-ring: #1e2350;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #14110a;
+  --foreground: #f4ecd8;
+  --card: #1c1710;
+  --card-foreground: #f4ecd8;
+  --popover: #1c1710;
+  --popover-foreground: #f4ecd8;
+  --primary: #d69a3c;
+  --primary-foreground: #17140c;
+  --secondary: #2a2416;
+  --secondary-foreground: #f4ecd8;
+  --muted: #241f14;
+  --muted-foreground: #a89a7d;
+  --accent: #3d448f;
+  --accent-foreground: #f4ecd8;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: #362d1c;
+  --input: #362d1c;
+  --ring: #d69a3c;
+  --chart-1: #d69a3c;
+  --chart-2: #3d448f;
+  --chart-3: #a89a7d;
+  --chart-4: #e0af57;
+  --chart-5: #565fa8;
+  --sidebar: #1c1710;
+  --sidebar-foreground: #f4ecd8;
+  --sidebar-primary: #d69a3c;
+  --sidebar-primary-foreground: #17140c;
+  --sidebar-accent: #2a2416;
+  --sidebar-accent-foreground: #f4ecd8;
+  --sidebar-border: #362d1c;
+  --sidebar-ring: #d69a3c;
+}
+
+:root {
+  /* System font stack — no webfont download, always renders in the OS's
+     native UI face. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
 }
 
 @layer base {

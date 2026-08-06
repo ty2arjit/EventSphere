@@ -74,9 +74,15 @@ describe('RegisterProfileService', () => {
       async findByEmail(): Promise<User | null> {
         return null; // pre-check passes — the competing insert hasn't landed yet
       },
+      async findById(): Promise<User | null> {
+        return null;
+      },
       async save(): Promise<void> {
         throw new UniqueConstraintViolationError('email');
       },
+      async updateIdentity(): Promise<void> {},
+      async updateProfile(): Promise<void> {},
+      async updatePreferences(): Promise<void> {},
     };
 
     const { service, eventPublisher } = buildService(racingRepository);
@@ -93,9 +99,15 @@ describe('RegisterProfileService', () => {
       async findByEmail(): Promise<User | null> {
         return null;
       },
+      async findById(): Promise<User | null> {
+        return null;
+      },
       async save(): Promise<void> {
         throw new Error('connection lost');
       },
+      async updateIdentity(): Promise<void> {},
+      async updateProfile(): Promise<void> {},
+      async updatePreferences(): Promise<void> {},
     };
 
     const { service } = buildService(failingRepository);

@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createApp } from './app';
 import { InMemoryProfileRepository } from './modules/profile/test-support/InMemoryProfileRepository';
 import { RecordingEventPublisher } from './modules/profile/test-support/RecordingEventPublisher';
+import { User } from './modules/profile/domain/User';
 
 function buildTestApp(checkDatabase?: () => Promise<void>) {
   return createApp({
@@ -138,5 +139,187 @@ describe('POST /api/v1/profile', () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('EMAIL_ALREADY_REGISTERED');
+  });
+
+  it('returns a full profile shape including defaulted profile/preferences', async () => {
+    const app = buildTestApp();
+
+    const res = await request(app)
+      .post('/api/v1/profile')
+      .send({ email: 'full-shape@example.com', name: 'Full Shape' });
+
+    expect(res.body).toMatchObject({
+      status: 'registered',
+      verifiedAt: null,
+      profile: { avatarUrl: null, bio: null },
+      preferences: { language: 'en', timezone: 'UTC', theme: 'system' },
+    });
+    expect(res.body.updatedAt).toBeTruthy();
+  });
+});
+
+async function registerProfile(app: ReturnType<typeof buildTestApp>, email: string) {
+  const res = await request(app).post('/api/v1/profile').send({ email, name: 'Test User' });
+  return res.body.id as string;
+}
+
+describe('GET /api/v1/profile/:id', () => {
+  it('returns 200 with the profile for a known id', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'get-known@example.com');
+
+    const res = await request(app).get(`/api/v1/profile/${id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(id);
+  });
+
+  it('returns 404 for an unknown id', async () => {
+    const app = buildTestApp();
+
+    const res = await request(app).get('/api/v1/profile/does-not-exist');
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('PROFILE_NOT_FOUND');
+  });
+});
+
+describe('PATCH /api/v1/profile/:id', () => {
+  it('updates bio/headline and returns 200', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-profile@example.com');
+
+    const res = await request(app)
+      .patch(`/api/v1/profile/${id}`)
+      .send({ bio: 'Hello world', headline: 'Engineer' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.profile).toMatchObject({ bio: 'Hello world', headline: 'Engineer' });
+  });
+
+  it('returns 400 for an out-of-range graduation year', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-invalid@example.com');
+
+    const res = await request(app)
+      .patch(`/api/v1/profile/${id}`)
+      .send({ graduationYear: 1900 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 404 for an unknown id', async () => {
+    const app = buildTestApp();
+
+    const res = await request(app).patch('/api/v1/profile/does-not-exist').send({ bio: 'Hi' });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('PATCH /api/v1/profile/:id/avatar', () => {
+  it('updates the avatar and returns 200', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-avatar@example.com');
+
+    const res = await request(app)
+      .patch(`/api/v1/profile/${id}/avatar`)
+      .send({ avatarUrl: 'https://example.com/a.png' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.profile.avatarUrl).toBe('https://example.com/a.png');
+  });
+
+  it('returns 400 for a malformed URL', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-avatar-bad@example.com');
+
+    const res = await request(app)
+      .patch(`/api/v1/profile/${id}/avatar`)
+      .send({ avatarUrl: 'not-a-url' });
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('PATCH /api/v1/profile/:id/preferences', () => {
+  it('updates preferences and returns 200', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-prefs@example.com');
+
+    const res = await request(app)
+      .patch(`/api/v1/profile/${id}/preferences`)
+      .send({ theme: 'dark', notifyInApp: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.preferences).toMatchObject({ theme: 'dark', notifyInApp: false });
+  });
+
+  it('returns 400 for an invalid theme', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-prefs-bad@example.com');
+
+    const res = await request(app)
+      .patch(`/api/v1/profile/${id}/preferences`)
+      .send({ theme: 'neon' });
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/v1/profile/:id/verify', () => {
+  it('verifies the profile and returns 200', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'verify@example.com');
+
+    const res = await request(app).post(`/api/v1/profile/${id}/verify`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('verified');
+    expect(res.body.verifiedAt).toBeTruthy();
+  });
+
+  it('returns 409 when already verified', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'verify-twice@example.com');
+
+    await request(app).post(`/api/v1/profile/${id}/verify`);
+    const res = await request(app).post(`/api/v1/profile/${id}/verify`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('ALREADY_VERIFIED');
+  });
+});
+
+describe('POST /api/v1/profile/:id/deactivate', () => {
+  it('returns 400 when the profile is not active yet', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'deactivate-not-active@example.com');
+
+    // freshly registered profiles start as 'registered', not 'active'
+    const res = await request(app).post(`/api/v1/profile/${id}/deactivate`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_LIFECYCLE_TRANSITION');
+  });
+
+  it('deactivates an active profile and returns 200', async () => {
+    // No /activate endpoint exists yet (not in this pass's route list), so
+    // reaching 'active' status for this test goes through the repository
+    // directly rather than HTTP.
+    const repository = new InMemoryProfileRepository();
+    const user = User.register('deactivate-active@example.com', 'Active User');
+    user.verifyIdentity();
+    user.activate();
+    await repository.save(user);
+
+    const app = createApp({
+      profileRepository: repository,
+      eventPublisher: new RecordingEventPublisher(),
+      corsOrigins: ['http://localhost:3000'],
+    });
+
+    const res = await request(app).post(`/api/v1/profile/${user.id}/deactivate`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('inactive');
   });
 });

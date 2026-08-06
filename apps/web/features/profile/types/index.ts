@@ -10,16 +10,64 @@
  * shared code (API-First boundary, SystemDesign.md).
  */
 
-/** Success payload of `POST /api/v1/profile`. */
+export type ProfileStatus = "registered" | "verified" | "active" | "inactive" | "archived";
+export type Theme = "light" | "dark" | "system";
+
+export interface ProfileDetails {
+  avatarUrl: string | null;
+  bio: string | null;
+  headline: string | null;
+  institution: string | null;
+  department: string | null;
+  graduationYear: number | null;
+}
+
+export interface ProfilePreferences {
+  language: string;
+  timezone: string;
+  theme: Theme;
+  notifyByEmail: boolean;
+  notifyInApp: boolean;
+}
+
+/** Full profile shape returned by every Profile endpoint. */
 export interface ProfileResponse {
   id: string;
   email: string;
   name: string;
   createdAt: string;
+  updatedAt: string;
+  status: ProfileStatus;
+  verifiedAt: string | null;
+  profile: ProfileDetails;
+  preferences: ProfilePreferences;
 }
 
 /** Request payload of `POST /api/v1/profile`. */
 export interface RegisterProfileInput {
   email: string;
   name: string;
+}
+
+/** Request payload of `PATCH /api/v1/profile/:id`. */
+export interface UpdateProfileInput {
+  bio?: string | null;
+  headline?: string | null;
+  institution?: string | null;
+  department?: string | null;
+  graduationYear?: number | null;
+}
+
+/** Request payload of `PATCH /api/v1/profile/:id/avatar`. */
+export interface UpdateAvatarInput {
+  avatarUrl: string | null;
+}
+
+/** Request payload of `PATCH /api/v1/profile/:id/preferences`. */
+export interface UpdatePreferencesInput {
+  language?: string;
+  timezone?: string;
+  theme?: Theme;
+  notifyByEmail?: boolean;
+  notifyInApp?: boolean;
 }

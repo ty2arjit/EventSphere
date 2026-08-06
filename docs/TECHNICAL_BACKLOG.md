@@ -42,15 +42,11 @@ Google Sign-In will be supported as an authentication provider. Explicitly out o
 
 ## From: Walking Skeleton Architecture Review
 
-### 🔵 BL-001 — Email normalization duplicated across layers
+### ✅ BL-001 — Email normalization duplicated across layers (RESOLVED)
 **Origin:** Walking Skeleton review, finding M1
-**Status:** Deferred — approved by project owner, do not change the model yet
+**Status:** Resolved during Profile Domain Phase 0 expansion
 
-`User.register()` normalizes email via `.trim().toLowerCase()`, and `RegisterProfileService.execute()` independently repeats the same normalization before calling `findByEmail()`. The same business rule is expressed in two places; if either drifts, duplicate detection silently breaks (Constitution Article 6 — Single Source of Truth).
-
-**Why not fixed now:** the natural fix is an `Email` Value Object, but the Canonical Architecture Specification (Section 2.1) currently lists User's value objects as `FullName`, `Avatar`, `SocialLinks (future)` — no `Email` VO. Introducing one is an architecture change requiring explicit approval (Constitution Article 8), not an implementation detail.
-
-**Revisit when:** the Authentication and Identity model expands (Phase 0). At that point, decide whether to add an `Email` Value Object and amend Specification Section 2.1 accordingly.
+Fixed by introducing an `Email` Value Object (`apps/api/src/modules/profile/domain/valueObjects/Email.ts`) as the single source of truth for trim/lowercase normalization and format validation. Both `User.register()` and `RegisterProfileService.execute()` now go through `Email.create()`. Canonical Architecture Specification §2.1 amended accordingly (User's Value Objects list now includes `Email`).
 
 ---
 
@@ -92,15 +88,11 @@ Constitution Article 18 requires every domain event to carry a Correlation ID. `
 
 ---
 
-### ⚪ BL-005 — `updatedAt` is persisted but not modeled in the domain
+### ✅ BL-005 — `updatedAt` is persisted but not modeled in the domain (RESOLVED)
 **Origin:** Walking Skeleton review, low-priority finding
-**Status:** Documented assumption
+**Status:** Resolved during Profile Domain Phase 0 expansion
 
-The Prisma `User` model has `updatedAt` (Prisma-managed via `@updatedAt`), but the `User` aggregate does not expose it, and `ProfileResponseDto` does not return it.
-
-**Why acceptable:** the Walking Skeleton is create-only — there are no update operations, so the field has no business meaning yet. Modeling it would be speculative (Constitution Article 37 — minimize new concepts; YAGNI).
-
-**Revisit when:** Profile update operations are implemented (Phase 0).
+`updatedAt` is now part of `UserProps`, bumped by every mutating aggregate method (`updateProfile`, `updateAvatar`, `updatePreferences`, `verifyIdentity`, `deactivate`, `archive`), and returned in `ProfileResponseDto`. Resolved exactly when originally anticipated — "when Profile update operations are implemented."
 
 ---
 
@@ -144,17 +136,11 @@ Canonical Architecture Specification §7 and `SystemDesign.md` both define only 
 
 ---
 
-### 🟠 BL-009 — Zero component tests
+### ✅ BL-009 — Zero component tests (RESOLVED)
 **Origin:** Frontend Walking Skeleton review, finding M1
-**Status:** Deferred — to be addressed as one of the **first Phase 0 engineering tasks**
+**Status:** Resolved during Profile Domain Phase 0 expansion
 
-`lib/` has 51 passing tests. `app/profile/ProfileRegistrationForm.tsx` has **none**. Every UI state (loading, success, error, validation) was verified manually in a browser.
-
-**Evidence the risk is real, not theoretical:** during Step 7, a stale placeholder (*"Result panel — implemented in Step 7."*) rendered on the page while **every programmatic DOM assertion passed**. Only a screenshot caught it. Automated component tests would have caught the regression that assertions missed.
-
-This was a deliberate deferral recorded in the frontend plan (§14: "Component-level rendering tests are deliberately excluded — that's a heavier dependency set than a wiring proof warrants"). That reasoning held for a wiring proof; it does not hold for feature development.
-
-**Next action:** establish the frontend testing strategy (likely Testing Library + jsdom) early in Phase 0, before multiple feature UIs exist.
+Testing Library + jsdom established as the frontend component-testing strategy (`@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `jsdom@25` — pinned to match Vitest 2.1.x's expected API surface). `vitest.config.ts` now runs `.test.tsx` under a `jsdom` environment with a shared `vitest.setup.ts` (jest-dom matchers, a `PointerEvent` polyfill jsdom lacks that Base UI's Checkbox/Select rely on). `ProfileRegistrationForm.test.tsx` closes the original gap; `ProfileView`, `ProfileEditForm`, and `PreferencesForm` also got tests as part of the same pass.
 
 ---
 

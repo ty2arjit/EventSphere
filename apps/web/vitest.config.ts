@@ -3,8 +3,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['lib/**/*.test.ts', 'features/**/*.test.ts'],
+    environment: 'jsdom',
+    include: ['lib/**/*.test.ts', 'features/**/*.test.ts', 'features/**/*.test.tsx'],
+    setupFiles: ['./vitest.setup.ts'],
   },
   resolve: {
     alias: {

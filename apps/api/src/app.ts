@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { ProfileRepository } from './modules/profile/domain/ProfileRepository';
-import { createProfileRouter } from './modules/profile/routes/profile.routes';
+import { createProfileRouter } from './modules/profile/api/routes/profile.routes';
 import { EventPublisher } from './shared/events/EventPublisher';
 import { errorHandler } from './shared/errors/errorHandler';
 import { httpLoggerOptions, logger } from './shared/logger';

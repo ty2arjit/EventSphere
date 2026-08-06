@@ -7,13 +7,34 @@ import { User } from '../domain/User';
  * without a real database.
  */
 export class InMemoryProfileRepository implements ProfileRepository {
-  private readonly usersByEmail = new Map<string, User>();
+  private readonly usersById = new Map<string, User>();
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.usersByEmail.get(email) ?? null;
+    for (const user of this.usersById.values()) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return null;
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.usersById.get(id) ?? null;
   }
 
   async save(user: User): Promise<void> {
-    this.usersByEmail.set(user.email, user);
+    this.usersById.set(user.id, user);
+  }
+
+  async updateIdentity(user: User): Promise<void> {
+    this.usersById.set(user.id, user);
+  }
+
+  async updateProfile(user: User): Promise<void> {
+    this.usersById.set(user.id, user);
+  }
+
+  async updatePreferences(user: User): Promise<void> {
+    this.usersById.set(user.id, user);
   }
 }

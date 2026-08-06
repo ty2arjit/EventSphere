@@ -13,5 +13,16 @@
  */
 
 export { ProfileRegistrationForm } from './components/ProfileRegistrationForm';
-export { registerProfile } from './api/profileClient';
-export type { ProfileResponse, RegisterProfileInput } from './types';
+export { ProfileDashboard } from './components/ProfileDashboard';
+export { registerProfile, getProfile } from './api/profileClient';
+export type {
+  ProfileResponse,
+  ProfileDetails,
+  ProfilePreferences,
+  ProfileStatus,
+  Theme,
+  RegisterProfileInput,
+  UpdateProfileInput,
+  UpdateAvatarInput,
+  UpdatePreferencesInput,
+} from './types';
