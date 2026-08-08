@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getErrorMessage } from "@/lib/api/errorMessages";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
 import { EventList } from "@/features/events";
+import { canManage } from "@/features/authorization/api/authorizationClient";
 import type { CommunityResponse } from "../types";
 import {
   getCommunityBySlug,
@@ -27,6 +28,7 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
   const [state, setState] = useState<State>({ status: "loading" });
   const { user } = useCurrentUser();
   const [actionLoading, setActionLoading] = useState(false);
+  const [canCreateEvent, setCanCreateEvent] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +41,20 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
     });
     return () => controller.abort();
   }, [slug]);
+
+  const communityId = state.status === "loaded" ? state.community.id : null;
+
+  useEffect(() => {
+    if (!communityId || !user) {
+      setCanCreateEvent(false);
+      return;
+    }
+    const controller = new AbortController();
+    canManage("event:manage", communityId, null, { signal: controller.signal }).then((result) => {
+      if (result.ok) setCanCreateEvent(result.data.allowed);
+    });
+    return () => controller.abort();
+  }, [communityId, user]);
 
   if (state.status === "loading") {
     return <p className="text-muted-foreground">Loading community…</p>;
@@ -136,7 +152,7 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
       <div>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Events</h2>
-          {user && isMember && (
+          {canCreateEvent && (
             <Link
               href={`/communities/${slug}/events/new`}
               className="text-sm font-medium text-primary hover:underline"

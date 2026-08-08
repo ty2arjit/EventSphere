@@ -4,6 +4,7 @@ import { ManagePermissionService } from '../../application/ManagePermissionServi
 import { ManageGrantService } from '../../application/ManageGrantService';
 import { EvaluatePermissionService } from '../../application/EvaluatePermissionService';
 import { AuthorizationController } from '../controllers/AuthorizationController';
+import { AuthorizeResourceActionService } from '../../application/AuthorizeResourceActionService';
 import { requireAuth } from '../../../authentication/api/middleware/requireAuth';
 import {
   validateCreatePermission,
@@ -14,6 +15,7 @@ import {
 
 export interface AuthorizationRouterDependencies {
   permissionPolicyRepository: PermissionPolicyRepository;
+  authorizeResourceActionService?: AuthorizeResourceActionService;
 }
 
 export function createAuthorizationRouter(deps: AuthorizationRouterDependencies): Router {
@@ -25,6 +27,7 @@ export function createAuthorizationRouter(deps: AuthorizationRouterDependencies)
     managePermissionService,
     manageGrantService,
     evaluatePermissionService,
+    deps.authorizeResourceActionService,
   );
 
   const router = Router();
@@ -38,6 +41,7 @@ export function createAuthorizationRouter(deps: AuthorizationRouterDependencies)
   router.delete('/grants/:id', requireAuth, controller.revokeGrant);
 
   router.post('/evaluate', requireAuth, validateEvaluate, controller.evaluate);
+  router.get('/can-manage', requireAuth, controller.canManage);
 
   return router;
 }

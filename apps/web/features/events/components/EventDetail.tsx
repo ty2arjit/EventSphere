@@ -14,7 +14,7 @@ import { TaskBoard, CreateTaskForm } from "@/features/volunteer";
 import { AnnouncementFeed, CreateAnnouncementForm } from "@/features/announcement";
 import { EventDashboardPanel, AIAssistant } from "@/features/analytics";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
-import { getCommunityById } from "@/features/community/api/communityClient";
+import { canManage } from "@/features/authorization/api/authorizationClient";
 
 const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefined> = {
   Draft: { label: "Publish", target: "Published" },
@@ -48,22 +48,19 @@ export function EventDetail({ slug }: { slug: string }) {
   }, [slug]);
 
   const communityId = state.status === "loaded" ? state.event.communityId : null;
+  const eventId = state.status === "loaded" ? state.event.id : null;
 
   useEffect(() => {
-    if (!communityId || !user) {
+    if (!communityId || !eventId || !user) {
       setIsOrganizer(false);
       return;
     }
     const controller = new AbortController();
-    getCommunityById(communityId, { signal: controller.signal }).then((result) => {
-      if (!result.ok) return;
-      const community = result.data;
-      const isOwner = community.ownerId === user.id;
-      const isMember = community.members.some((m) => m.userId === user.id);
-      setIsOrganizer(isOwner || isMember);
+    canManage("event:manage", communityId, eventId, { signal: controller.signal }).then((result) => {
+      if (result.ok) setIsOrganizer(result.data.allowed);
     });
     return () => controller.abort();
-  }, [communityId, user]);
+  }, [communityId, eventId, user]);
 
   if (state.status === "loading") return <p className="text-muted-foreground">Loading event…</p>;
   if (state.status === "error") return <p className="text-sm text-destructive">{state.message}</p>;
