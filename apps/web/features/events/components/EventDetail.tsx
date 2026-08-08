@@ -190,7 +190,7 @@ export function EventDetail({ slug }: { slug: string }) {
                 onCreated={() => setTaskRefreshKey((k) => k + 1)}
               />
             )}
-            <TaskBoard key={taskRefreshKey} eventId={event.id} />
+            <TaskBoard key={taskRefreshKey} eventId={event.id} canManage={canManageTasks} />
           </div>
         </div>
 

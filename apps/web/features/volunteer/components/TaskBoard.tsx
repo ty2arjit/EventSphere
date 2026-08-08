@@ -23,9 +23,10 @@ const NEXT_STATUS: Record<string, string[]> = {
 
 interface TaskBoardProps {
   eventId: string;
+  canManage?: boolean;
 }
 
-export function TaskBoard({ eventId }: TaskBoardProps) {
+export function TaskBoard({ eventId, canManage = false }: TaskBoardProps) {
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -85,7 +86,7 @@ export function TaskBoard({ eventId }: TaskBoardProps) {
                         {task.checklistItems.filter((c) => c.completed).length}/{task.checklistItems.length} done
                       </div>
                     )}
-                    {NEXT_STATUS[task.status] && (
+                    {canManage && NEXT_STATUS[task.status] && (
                       <div className="flex gap-1 flex-wrap">
                         {NEXT_STATUS[task.status].map((target) => (
                           <button
