@@ -15,9 +15,10 @@ import { FadeIn } from "@/components/motion/FadeIn";
 interface RegistrationPanelProps {
   eventId: string;
   isOrganizer?: boolean;
+  onEnrolled?: () => void;
 }
 
-export function RegistrationPanel({ eventId, isOrganizer = false }: RegistrationPanelProps) {
+export function RegistrationPanel({ eventId, isOrganizer = false, onEnrolled }: RegistrationPanelProps) {
   const [registration, setRegistration] = useState<RegistrationResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -54,6 +55,7 @@ export function RegistrationPanel({ eventId, isOrganizer = false }: Registration
     const result = await enroll(eventId);
     if (result.ok) {
       toast.success("Successfully enrolled!");
+      onEnrolled?.();
     } else {
       toast.error("Enrollment failed");
     }

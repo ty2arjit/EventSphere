@@ -10,8 +10,8 @@ import { getEventBySlug, transitionEvent } from "../api/eventClient";
 import { CommitteeDetail } from "@/features/committee";
 import { RegistrationPanel } from "@/features/participation";
 import { EnrollmentList } from "@/features/participation";
-import { TaskBoard } from "@/features/volunteer";
-import { AnnouncementFeed } from "@/features/announcement";
+import { TaskBoard, CreateTaskForm } from "@/features/volunteer";
+import { AnnouncementFeed, CreateAnnouncementForm } from "@/features/announcement";
 import { EventDashboardPanel, AIAssistant } from "@/features/analytics";
 
 const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefined> = {
@@ -30,6 +30,9 @@ export function EventDetail({ slug }: { slug: string }) {
     | { status: "error"; message: string }
   >({ status: "loading" });
   const [transitioning, setTransitioning] = useState(false);
+  const [taskRefreshKey, setTaskRefreshKey] = useState(0);
+  const [announcementRefreshKey, setAnnouncementRefreshKey] = useState(0);
+  const [enrollmentRefreshKey, setEnrollmentRefreshKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -143,20 +146,32 @@ export function EventDetail({ slug }: { slug: string }) {
         <div>
           <h2 className="text-lg font-semibold">Registration & Enrollment</h2>
           <div className="mt-2 space-y-4">
-            <RegistrationPanel eventId={event.id} isOrganizer />
-            <EnrollmentList eventId={event.id} isOrganizer />
+            <RegistrationPanel
+              eventId={event.id}
+              isOrganizer
+              onEnrolled={() => setEnrollmentRefreshKey((k) => k + 1)}
+            />
+            <EnrollmentList key={enrollmentRefreshKey} eventId={event.id} isOrganizer />
           </div>
         </div>
 
         <div>
           <h2 className="text-lg font-semibold">Tasks</h2>
-          <div className="mt-2">
-            <TaskBoard eventId={event.id} />
+          <div className="mt-2 space-y-4">
+            <CreateTaskForm
+              eventId={event.id}
+              onCreated={() => setTaskRefreshKey((k) => k + 1)}
+            />
+            <TaskBoard key={taskRefreshKey} eventId={event.id} />
           </div>
         </div>
 
-        <div>
-          <AnnouncementFeed eventId={event.id} isOrganizer />
+        <div className="space-y-4">
+          <CreateAnnouncementForm
+            eventId={event.id}
+            onCreated={() => setAnnouncementRefreshKey((k) => k + 1)}
+          />
+          <AnnouncementFeed key={announcementRefreshKey} eventId={event.id} isOrganizer />
         </div>
 
         <div>
