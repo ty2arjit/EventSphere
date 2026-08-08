@@ -164,6 +164,64 @@ describe('request — malformed responses', () => {
   });
 });
 
+describe('request — expired access token retry', () => {
+  it('retries once after a successful refresh, and returns the retried response', async () => {
+    const calls: string[] = [];
+    mockFetch(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      if (url.endsWith('/api/v1/auth/refresh')) {
+        calls.push('refresh');
+        return jsonResponse(200, { ok: true });
+      }
+      calls.push('thing');
+      // First call to the real endpoint fails (expired token); retry succeeds.
+      return calls.filter((c) => c === 'thing').length === 1
+        ? jsonResponse(401, { error: 'AUTHENTICATION_REQUIRED', message: 'expired' })
+        : jsonResponse(200, { id: '1' });
+    });
+
+    const result = await request<{ id: string }>('/api/v1/thing');
+
+    expect(calls).toEqual(['thing', 'refresh', 'thing']);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data).toEqual({ id: '1' });
+  });
+
+  it('returns the original 401 when refresh itself fails, without looping', async () => {
+    const calls: string[] = [];
+    mockFetch(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      if (url.endsWith('/api/v1/auth/refresh')) {
+        calls.push('refresh');
+        return jsonResponse(401, { error: 'REFRESH_TOKEN_INVALID', message: 'expired' });
+      }
+      calls.push('thing');
+      return jsonResponse(401, { error: 'AUTHENTICATION_REQUIRED', message: 'expired' });
+    });
+
+    const result = await request('/api/v1/thing');
+
+    // Exactly one retry attempt at refresh, then no further retry of /thing.
+    expect(calls).toEqual(['thing', 'refresh']);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('AUTHENTICATION_REQUIRED');
+  });
+
+  it('does not attempt refresh for the refresh/login/register endpoints themselves', async () => {
+    const calls: string[] = [];
+    mockFetch(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      calls.push(url);
+      return jsonResponse(401, { error: 'INVALID_CREDENTIALS', message: 'bad password' });
+    });
+
+    const result = await request('/api/v1/auth/login', { method: 'POST', body: {} });
+
+    expect(calls).toHaveLength(1);
+    expect(result.ok).toBe(false);
+  });
+});
+
 describe('request — network failures', () => {
   it('classifies an unreachable server as NETWORK, not a thrown error', async () => {
     mockFetch(async () => {

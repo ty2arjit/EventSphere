@@ -79,6 +79,36 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+// Access tokens are short-lived (15 min) by design, so any session left open
+// longer than that would otherwise hit a spurious "unauthorized" error on
+// its very next action — even though the refresh token is still valid — and
+// the only fix would be a full page reload. Paths the refresh dance must
+// never apply to: retrying /refresh itself would loop, and a genuine 401 from
+// /login means the credentials were wrong, not that the session expired.
+const AUTH_PATHS_EXEMPT_FROM_REFRESH = ['/api/v1/auth/refresh', '/api/v1/auth/login', '/api/v1/auth/register'];
+
+// Concurrent 401s (e.g. a page firing several requests at once right as the
+// token expires) must share one in-flight refresh, not each trigger their
+// own — the second refresh would invalidate the first anyway, so racing
+// them is pure waste. Cleared once the flight lands so state doesn't stay
+// stuck at "refreshing" if the refresh fails and startles a later attempt.
+let refreshInFlight: Promise<boolean> | null = null;
+
+function refreshAccessToken(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${getApiBaseUrl()}/api/v1/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then((res) => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
 /**
  * Performs an API request and returns a discriminated union.
  *
@@ -116,6 +146,31 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
         message: error instanceof Error ? error.message : 'Request failed before reaching the server',
       },
     };
+  }
+
+  if (response.status === 401 && !AUTH_PATHS_EXEMPT_FROM_REFRESH.includes(path) && !combinedSignal.aborted) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      try {
+        response = await fetch(url, {
+          method,
+          headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          credentials: 'include',
+          signal: combinedSignal,
+        });
+      } catch (error) {
+        const isTimeout = timeoutSignal.aborted;
+        return {
+          ok: false,
+          error: {
+            kind: isTimeout ? 'TIMEOUT' : 'NETWORK',
+            code: isTimeout ? CLIENT_ERROR_CODES.REQUEST_TIMEOUT : CLIENT_ERROR_CODES.NETWORK_UNREACHABLE,
+            message: error instanceof Error ? error.message : 'Request failed before reaching the server',
+          },
+        };
+      }
+    }
   }
 
   if (!response.ok) {
