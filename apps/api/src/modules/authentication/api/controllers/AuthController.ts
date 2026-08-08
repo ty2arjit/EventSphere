@@ -16,11 +16,18 @@ import { AcknowledgementResponseDto } from '../dto/AuthenticatedUserResponseDto'
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+// The web app (Vercel) and API (Railway) are different registrable domains,
+// so cookies must be SameSite=None to survive a cross-site fetch — Lax only
+// attaches on top-level navigation, never on XHR/fetch. SameSite=None is only
+// valid when Secure is also true (browsers reject it otherwise), which is
+// why both are gated on the same flag rather than set independently.
+const COOKIE_SAME_SITE: CookieOptions['sameSite'] = IS_PROD ? 'none' : 'lax';
+
 function accessCookieOptions(ttlSeconds: number): CookieOptions {
   return {
     httpOnly: true,
     secure: IS_PROD,
-    sameSite: 'lax',
+    sameSite: COOKIE_SAME_SITE,
     path: '/',
     maxAge: ttlSeconds * 1000,
   };
@@ -30,7 +37,7 @@ function refreshCookieOptions(ttlSeconds: number): CookieOptions {
   return {
     httpOnly: true,
     secure: IS_PROD,
-    sameSite: 'lax',
+    sameSite: COOKIE_SAME_SITE,
     path: '/api/v1/auth',
     maxAge: ttlSeconds * 1000,
   };
@@ -39,7 +46,7 @@ function refreshCookieOptions(ttlSeconds: number): CookieOptions {
 const CLEAR_COOKIE: CookieOptions = {
   httpOnly: true,
   secure: IS_PROD,
-  sameSite: 'lax',
+  sameSite: COOKIE_SAME_SITE,
   path: '/',
   maxAge: 0,
 };
