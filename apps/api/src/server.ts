@@ -24,6 +24,8 @@ import { PrismaCertificateRepository } from './modules/participation/infrastruct
 import { PrismaOperationalTaskRepository } from './modules/volunteer/infrastructure/PrismaOperationalTaskRepository';
 import { PrismaAnnouncementRepository } from './modules/announcement/infrastructure/PrismaAnnouncementRepository';
 import { PrismaMetricRepository } from './modules/analytics/infrastructure/PrismaMetricRepository';
+import { AuthorizeResourceActionService } from './modules/authorization/application/AuthorizeResourceActionService';
+import { seedDefaultPermissions } from './modules/authorization/application/PermissionSeeder';
 import { VerifyIdentityService } from './modules/profile/application/VerifyIdentityService';
 import { EMAIL_VERIFIED } from './modules/authentication/domain/events/EmailVerified';
 import { makeVerifyProfileOnEmailVerified } from './modules/authentication/application/subscribers/verifyProfileOnEmailVerified';
@@ -62,6 +64,11 @@ const certificateRepository = new PrismaCertificateRepository(prisma);
 const taskRepository = new PrismaOperationalTaskRepository(prisma);
 const announcementRepository = new PrismaAnnouncementRepository(prisma);
 const metricRepository = new PrismaMetricRepository(prisma);
+const authorizeService = new AuthorizeResourceActionService(
+  permissionPolicyRepository,
+  communityRepository,
+  committeeRepository,
+);
 const passwordHasher = new Argon2PasswordHasher();
 const tokenHasher = new Sha256TokenHasher();
 const tokenGenerator = new CryptoRandomTokenGenerator();
@@ -113,25 +120,33 @@ const app = createApp({
   eventDependencies: {
     eventRepository,
     eventPublisher,
+    authorizeService,
   },
   committeeDependencies: {
     committeeRepository,
     eventPublisher,
+    authorizeService,
   },
   participationDependencies: {
     registrationRepository,
     enrollmentRepository,
     attendanceRepository,
     certificateRepository,
+    eventRepository,
     eventPublisher,
+    authorizeService,
   },
   volunteerDependencies: {
     taskRepository,
+    eventRepository,
     eventPublisher,
+    authorizeService,
   },
   announcementDependencies: {
     announcementRepository,
+    eventRepository,
     eventPublisher,
+    authorizeService,
   },
   analyticsDependencies: {
     metricRepository,
@@ -141,9 +156,15 @@ const app = createApp({
   },
 });
 
-const server = app.listen(port, () => {
-  logger.info({ port, corsOrigins }, 'API listening');
-});
+let server: ReturnType<typeof app.listen>;
+
+seedDefaultPermissions(permissionPolicyRepository)
+  .catch((err) => logger.error({ err }, 'Failed to seed default permissions'))
+  .finally(() => {
+    server = app.listen(port, () => {
+      logger.info({ port, corsOrigins }, 'API listening');
+    });
+  });
 
 /**
  * Close the HTTP server and release the database pool on shutdown so
@@ -151,6 +172,11 @@ const server = app.listen(port, () => {
  */
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'Shutting down');
+  if (!server) {
+    await prisma.$disconnect();
+    process.exit(0);
+    return;
+  }
   server.close(() => {
     void prisma.$disconnect().finally(() => process.exit(0));
   });

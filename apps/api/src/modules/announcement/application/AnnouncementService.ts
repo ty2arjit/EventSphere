@@ -2,6 +2,7 @@ import type { AnnouncementRepository } from "../domain/AnnouncementRepository";
 import type { EventPublisher } from "../../../shared/events/EventPublisher";
 import { Announcement, type AnnouncementPriority, type AnnouncementChannel } from "../domain/Announcement";
 import { createDomainEvent } from "../../../shared/events/DomainEvent";
+import { AnnouncementNotFoundError } from "../domain/errors";
 
 export class AnnouncementService {
   constructor(
@@ -69,7 +70,7 @@ export class AnnouncementService {
 
   private async load(id: string): Promise<Announcement> {
     const a = await this.repo.findById(id);
-    if (!a) throw new Error(`Announcement not found: ${id}`);
+    if (!a) throw new AnnouncementNotFoundError(id);
     return a;
   }
 }

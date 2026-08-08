@@ -3,6 +3,7 @@ import type { EventPublisher } from "../../../shared/events/EventPublisher";
 import { OperationalTask } from "../domain/OperationalTask";
 import type { TaskPriority } from "../domain/valueObjects/TaskPriority";
 import { createDomainEvent } from "../../../shared/events/DomainEvent";
+import { TaskNotFoundError } from "../domain/errors";
 
 export class ManageTaskService {
   constructor(
@@ -75,7 +76,7 @@ export class ManageTaskService {
 
   private async load(id: string): Promise<OperationalTask> {
     const task = await this.repo.findById(id);
-    if (!task) throw new Error(`Task not found: ${id}`);
+    if (!task) throw new TaskNotFoundError(id);
     return task;
   }
 }

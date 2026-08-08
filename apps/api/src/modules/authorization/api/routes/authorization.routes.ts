@@ -4,6 +4,7 @@ import { ManagePermissionService } from '../../application/ManagePermissionServi
 import { ManageGrantService } from '../../application/ManageGrantService';
 import { EvaluatePermissionService } from '../../application/EvaluatePermissionService';
 import { AuthorizationController } from '../controllers/AuthorizationController';
+import { requireAuth } from '../../../authentication/api/middleware/requireAuth';
 import {
   validateCreatePermission,
   validateUpdatePermission,
@@ -28,15 +29,15 @@ export function createAuthorizationRouter(deps: AuthorizationRouterDependencies)
 
   const router = Router();
 
-  router.get('/permissions', controller.listPermissions);
-  router.post('/permissions', validateCreatePermission, controller.createPermission);
-  router.put('/permissions/:id', validateUpdatePermission, controller.updatePermission);
+  router.get('/permissions', requireAuth, controller.listPermissions);
+  router.post('/permissions', requireAuth, validateCreatePermission, controller.createPermission);
+  router.put('/permissions/:id', requireAuth, validateUpdatePermission, controller.updatePermission);
 
-  router.get('/grants', controller.listGrants);
-  router.post('/grants', validateCreateGrant, controller.createGrant);
-  router.delete('/grants/:id', controller.revokeGrant);
+  router.get('/grants', requireAuth, controller.listGrants);
+  router.post('/grants', requireAuth, validateCreateGrant, controller.createGrant);
+  router.delete('/grants/:id', requireAuth, controller.revokeGrant);
 
-  router.post('/evaluate', validateEvaluate, controller.evaluate);
+  router.post('/evaluate', requireAuth, validateEvaluate, controller.evaluate);
 
   return router;
 }
