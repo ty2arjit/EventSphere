@@ -1,9 +1,15 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import { ProfileRepository } from './modules/profile/domain/ProfileRepository';
 import { createProfileRouter } from './modules/profile/api/routes/profile.routes';
+import { createAuthRouter, AuthRouterDependencies } from './modules/authentication/api/routes/auth.routes';
+import { createAuthenticateMiddleware } from './modules/authentication/api/middleware/authenticate';
+import { JwtService } from './modules/authentication/infrastructure/JoseJwtService';
+import { createCommunityRouter, CommunityRouterDependencies } from './modules/community/api/routes/community.routes';
+import { createAuthorizationRouter, AuthorizationRouterDependencies } from './modules/authorization/api/routes/authorization.routes';
 import { EventPublisher } from './shared/events/EventPublisher';
 import { errorHandler } from './shared/errors/errorHandler';
 import { httpLoggerOptions, logger } from './shared/logger';
@@ -11,22 +17,12 @@ import { httpLoggerOptions, logger } from './shared/logger';
 export interface AppDependencies {
   profileRepository: ProfileRepository;
   eventPublisher: EventPublisher;
-  /**
-   * Allowed browser origins. Explicit allow-list rather than a wildcard —
-   * `*` is incompatible with credentialed requests, which Phase 0 needs for
-   * HTTP-only auth cookies (`SystemDesign.md`, Authentication).
-   */
   corsOrigins: string[];
-  /**
-   * Verifies the app's critical downstream dependency (the database) is
-   * actually reachable. Injected rather than importing Prisma here, so the
-   * composition root stays free of infrastructure (Constitution Article 11)
-   * and tests can supply a stub.
-   *
-   * Optional: when omitted, `/ready` reports the dependency as unchecked
-   * rather than falsely claiming health.
-   */
   checkDatabase?: () => Promise<void>;
+  jwtService?: JwtService;
+  authDependencies?: AuthRouterDependencies;
+  communityDependencies?: CommunityRouterDependencies;
+  authorizationDependencies?: AuthorizationRouterDependencies;
 }
 
 /**
@@ -39,6 +35,10 @@ export function createApp({
   eventPublisher,
   corsOrigins,
   checkDatabase,
+  jwtService,
+  authDependencies,
+  communityDependencies,
+  authorizationDependencies,
 }: AppDependencies): Express {
   const app = express();
 
@@ -51,7 +51,12 @@ export function createApp({
   app.use(helmet());
 
   app.use(cors({ origin: corsOrigins, credentials: true }));
+  app.use(cookieParser());
   app.use(express.json());
+
+  if (jwtService) {
+    app.use(createAuthenticateMiddleware(jwtService));
+  }
 
   // Uses custom serializers that omit credential-bearing headers — see
   // shared/logger for the allowlist rationale.
@@ -96,6 +101,18 @@ export function createApp({
   });
 
   app.use('/api/v1/profile', createProfileRouter(profileRepository, eventPublisher));
+
+  if (authDependencies) {
+    app.use('/api/v1/auth', createAuthRouter(authDependencies));
+  }
+
+  if (communityDependencies) {
+    app.use('/api/v1/communities', createCommunityRouter(communityDependencies));
+  }
+
+  if (authorizationDependencies) {
+    app.use('/api/v1/authorization', createAuthorizationRouter(authorizationDependencies));
+  }
 
   // Must be registered last — Express identifies error-handling middleware
   // by its four-argument signature.

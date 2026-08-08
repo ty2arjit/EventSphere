@@ -38,8 +38,11 @@ model User {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  profile     UserProfile?
-  preferences UserPreferences?
+  profile          UserProfile?
+  preferences      UserPreferences?
+  credential       UserCredential?
+  ownedCommunities Community[]       @relation("CommunityOwner")
+  memberships      CommunityMember[]
 
   @@map("users")
 }
@@ -69,4 +72,212 @@ model UserPreferences {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
+}
+
+// Authentication Domain (Ch.20). One credential record per User (Ch.20
+// invariant); credential.id == user.id — the same identity, different
+// bounded contexts. Passwords are never plaintext; the value stored is
+// argon2id-hashed (see HashedPassword VO). OAuth-only accounts have
+// hashedPassword = null.
+model UserCredential {
+  id              String    @id                    // matches User.id
+  email           String    @unique                // Auth's own copy, kept in sync via EmailVerified/UserEmailChanged events
+  hashedPassword  String?                          // "argon2id$..." serialized; null for OAuth-only
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user       User                     @relation(fields: [id], references: [id], onDelete: Cascade)
+  providers  AuthenticationProvider[]
+  sessions   AuthenticationSession[]
+  tokens     VerificationToken[]
+
+  @@map("user_credentials")
+}
+
+// Provider linkage — password (always for locally-registered users) or an
+// OAuth provider (future — FR-001 for Google). Multiple providers per
+// credential allowed; all resolve to the same canonical User (Ch.20).
+model AuthenticationProvider {
+  id                String   @id @default(uuid())
+  userCredentialId  String
+  provider          String                          // 'password' | 'google' | ...
+  providerAccountId String                          // password: email; google: sub
+  linkedAt          DateTime @default(now())
+
+  credential UserCredential @relation(fields: [userCredentialId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userCredentialId])
+  @@map("authentication_providers")
+}
+
+// One row per active login. refreshTokenHash is SHA-256 of the raw refresh
+// token — the raw token is never persisted. Rotation writes a new row and
+// marks the old one revoked (revokedAt set).
+model AuthenticationSession {
+  id                String    @id @default(uuid())
+  userCredentialId  String
+  refreshTokenHash  String    @unique
+  deviceLabel       String?
+  ipAddress         String?
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+
+  credential UserCredential @relation(fields: [userCredentialId], references: [id], onDelete: Cascade)
+
+  @@index([userCredentialId])
+  @@map("authentication_sessions")
+}
+
+// Single-use tokens for email verification and password reset. tokenHash
+// is SHA-256 of the raw token; the raw token is embedded in the email URL
+// once and never stored.
+model VerificationToken {
+  id                String    @id @default(uuid())
+  userCredentialId  String
+  purpose           String                          // 'email_verification' | 'password_reset'
+  tokenHash         String    @unique
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime
+  consumedAt        DateTime?
+
+  credential UserCredential @relation(fields: [userCredentialId], references: [id], onDelete: Cascade)
+
+  @@index([userCredentialId, purpose])
+  @@map("verification_tokens")
+}
+
+// Community Domain (Ch.18). The Community aggregate root owns members,
+// positions, invitations, and settings. Every community has exactly one
+// owner (ownerId). Leadership history is preserved — assignments are
+// never deleted, only soft-closed (removedAt set).
+
+model Community {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  logoUrl     String?
+  ownerId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner       User                  @relation("CommunityOwner", fields: [ownerId], references: [id])
+  members     CommunityMember[]
+  positions   CommunityPosition[]
+  invitations CommunityInvitation[]
+  settings    CommunitySettings?
+
+  @@map("communities")
+}
+
+model CommunityMember {
+  id          String    @id @default(uuid())
+  communityId String
+  userId      String
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+  assignments PositionAssignment[]
+
+  @@unique([communityId, userId])
+  @@index([userId])
+  @@map("community_members")
+}
+
+model CommunityPosition {
+  id                    String    @id @default(uuid())
+  communityId           String
+  name                  String
+  description           String?
+  allowsMultipleHolders Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+
+  community   Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  assignments PositionAssignment[]
+
+  @@unique([communityId, name])
+  @@map("community_positions")
+}
+
+model PositionAssignment {
+  id         String    @id @default(uuid())
+  positionId String
+  memberId   String
+  assignedAt DateTime  @default(now())
+  removedAt  DateTime?
+
+  position CommunityPosition @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  member   CommunityMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([positionId])
+  @@index([memberId])
+  @@map("position_assignments")
+}
+
+model CommunityInvitation {
+  id              String    @id @default(uuid())
+  communityId     String
+  invitedEmail    String
+  invitedByUserId String
+  status          String    @default("pending")
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+  respondedAt     DateTime?
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@map("community_invitations")
+}
+
+model CommunitySettings {
+  communityId            String  @id
+  isPublic               Boolean @default(true)
+  allowMemberInvitations Boolean @default(false)
+  invitationExpiryDays   Int     @default(7)
+  defaultMemberRole      String?
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@map("community_settings")
+}
+
+// Authorization Domain. PermissionPolicy is a singleton aggregate —
+// permissions and grants are child entities. "Deny is default":
+// access is only granted when an active PermissionGrant matches.
+// Permissions are never assigned directly to Users — they flow
+// through ResponsibilityReferences (CommunityPosition, CommitteeRole,
+// PlatformAdmin).
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  grants PermissionGrant[]
+
+  @@map("permissions")
+}
+
+model PermissionGrant {
+  id                    String    @id @default(uuid())
+  permissionId          String
+  contextLevel          String                          // 'Platform' | 'Community' | 'Event'
+  contextId             String?
+  responsibilityType    String                          // 'CommunityPosition' | 'CommitteeRole' | 'PlatformAdmin'
+  responsibilityId      String
+  grantedAt             DateTime  @default(now())
+  revokedAt             DateTime?
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@index([permissionId])
+  @@index([responsibilityType, responsibilityId])
+  @@map("permission_grants")
 }

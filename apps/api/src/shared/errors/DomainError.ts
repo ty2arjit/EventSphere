@@ -11,7 +11,8 @@ export type DomainErrorKind =
   | 'CONFLICT'
   | 'NOT_FOUND'
   | 'UNAUTHORIZED'
-  | 'FORBIDDEN';
+  | 'FORBIDDEN'
+  | 'RATE_LIMITED';
 
 /**
  * Base class for expected business-rule violations (as opposed to unexpected

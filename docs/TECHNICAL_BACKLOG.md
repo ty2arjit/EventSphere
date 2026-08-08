@@ -34,9 +34,9 @@ Google Sign-In will be supported as an authentication provider. Explicitly out o
 
 **Assessment: no change required.** Nothing in the Walking Skeleton makes OAuth harder to add later.
 
-**One genuinely new design question for Phase 0 — account linking.** Once two paths can create a `User` (self-registration and OAuth callback), the platform must decide what happens when someone registers with email X and later signs in with Google using the same email X. Options include auto-linking on verified email, requiring explicit confirmation, or treating them as distinct identities. This is an Authentication Domain design decision to settle when that domain is implemented — not a defect in current code, and not resolvable now.
+**Account-linking policy decided (Phase 0):** auto-link on verified email match. If Google returns `email_verified: true` for an email that already has a `UserCredential`, a `google` `AuthenticationProvider` is attached. If either side is unverified, require explicit confirmation. Policy recorded; no OAuth code implemented yet.
 
-**Related:** BL-002 (account enumeration) gains importance once OAuth exists, since a linking flow can leak whether an email is already registered.
+**Related:** BL-002 (account enumeration) resolved — all auth endpoints return generic responses.
 
 ---
 
@@ -50,17 +50,11 @@ Fixed by introducing an `Email` Value Object (`apps/api/src/modules/profile/doma
 
 ---
 
-### 🟡 BL-002 — Account enumeration via registration error
+### ✅ BL-002 — Account enumeration via registration error (RESOLVED)
 **Origin:** Walking Skeleton review, finding M3
-**Status:** Accepted risk — known security consideration, deliberately not addressed yet
+**Status:** Resolved during Authentication Domain implementation (Phase 0)
 
-`POST /api/v1/profile` returns `EMAIL_ALREADY_REGISTERED` with the message `Email already registered: <email>`, allowing an unauthenticated caller to determine whether a given address has an account.
-
-**Why acceptable now:** the Walking Skeleton has no authentication, no sessions, and no production users — there is nothing yet to enumerate against. The endpoint exists to prove stack wiring.
-
-**Revisit when:** Authentication Domain is implemented (Phase 0). Standard mitigations to weigh then: generic response messages, rate limiting on registration (Redis is already in the stack per `SystemDesign.md`), and/or email-verification-based registration flows that don't confirm existence synchronously.
-
-**Constraint:** must be resolved before any production launch carrying real user data.
+All auth endpoints now return generic responses regardless of whether an email exists. Registration returns `{ ok: true }` ("check your email") whether the address is new or existing. Login returns a generic `Invalid email or password`. Password reset similarly never leaks existence. Rate limiting (`express-rate-limit`) caps `/register`, `/login`, `/password/request-reset`, and `/email/request-verification`.
 
 ---
 
@@ -96,25 +90,21 @@ Constitution Article 18 requires every domain event to carry a Correlation ID. `
 
 ---
 
-### 🟡 BL-006 — No `helmet` / security headers middleware
+### ✅ BL-006 — No `helmet` / security headers middleware (RESOLVED)
 **Origin:** Walking Skeleton review, low-priority finding
-**Status:** Accepted risk
+**Status:** Resolved during production hardening pass (pre-Phase 0)
 
-The Express app sets no security headers (CSP, HSTS, X-Frame-Options, etc.).
-
-**Why acceptable now:** the API serves JSON to a known origin with no authentication, no cookies, and no browser-rendered HTML.
-
-**Revisit when:** Authentication Domain lands (Phase 0) — HTTP-only auth cookies make header hardening materially important.
+Helmet is installed and mounted as the first middleware in `app.ts`. Security headers (HSTS, nosniff, frame-ancestors, etc.) now apply to every response.
 
 ---
 
-### 🟡 BL-007 — No rate limiting
+### 🔵 BL-007 — Rate limiting uses in-memory store (partially resolved)
 **Origin:** Walking Skeleton review
-**Status:** Accepted risk — already anticipated by the architecture
+**Status:** Partially resolved — in-memory rate limiter active on auth endpoints
 
-No throttling on any endpoint. `SystemDesign.md` already designates Redis for rate limiting, so the intended mechanism exists in the plan; it simply isn't wired up.
+`express-rate-limit` now protects `/register`, `/login`, `/password/request-reset`, `/email/request-verification`, and `/email/verify` with per-IP limits. Uses the default in-memory store, which is fine for Railway's single-instance deployment.
 
-**Revisit when:** Authentication Domain (Phase 0) — login and registration endpoints are the natural first targets, and BL-002's mitigation likely depends on this.
+**Remaining:** Redis-backed store needed for multi-instance deployments. Add when scaling beyond a single Railway instance.
 
 ---
 
@@ -191,3 +181,45 @@ Quote style is already inconsistent: `lib/api/http.ts` and `lib/api/config.ts` u
 **Why worth doing before the codebase grows:** a formatter introduced later produces a large mechanical diff across every file, which obscures real changes in review history. Introducing it while the codebase is small keeps that diff trivial.
 
 **Next action:** add Prettier (with an ESLint integration that avoids rule conflicts) as part of standard frontend tooling early in Phase 0.
+
+---
+
+## From: Authentication Domain (Phase 0)
+
+### 🔵 BL-014 — Production email delivery not implemented
+**Origin:** Authentication Domain blueprint, decision 8
+**Status:** Deferred — `ConsoleMailer` logs links to server console
+
+Verification and password-reset emails are logged to stdout via `ConsoleMailer`. Production requires a real email provider (Postmark, SES, or similar) implementing the `Mailer` interface.
+
+**Next action:** integrate a production email provider before any public-facing deployment with real users.
+
+---
+
+### 🔵 BL-015 — MFA not implemented
+**Origin:** Ch.20 lists MFA as a future authentication mechanism
+**Status:** Deferred — not in Phase 0 scope per Ch.20 itself
+
+TOTP/WebAuthn MFA will be needed for sensitive operations. The `AuthenticationProvider` entity and `UserCredential.providers[]` array already accommodate additional mechanisms.
+
+**Next action:** implement when security requirements escalate or before handling financial/sensitive data.
+
+---
+
+### 🔵 BL-016 — Refresh token theft alerting
+**Origin:** Authentication Domain blueprint
+**Status:** Deferred — theft detection works (revokes all sessions), but no alerting
+
+When a previously-rotated refresh token is reused (indicating theft), `RefreshSessionService` revokes all sessions for that credential. The user is not notified.
+
+**Next action:** send an alert email when theft is detected, once production email delivery (BL-014) is in place.
+
+---
+
+### 🔵 BL-017 — Session listing / device management UI
+**Origin:** Authentication Domain blueprint
+**Status:** Deferred — no UI for viewing/revoking individual sessions
+
+Users can log out everywhere but cannot see their active sessions or revoke specific ones.
+
+**Next action:** add to profile dashboard when Community Domain is complete.

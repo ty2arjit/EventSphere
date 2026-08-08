@@ -17,6 +17,7 @@ const KIND_TO_HTTP_STATUS: Record<DomainErrorKind, number> = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  RATE_LIMITED: 429,
 };
 
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction): void {

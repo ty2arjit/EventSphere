@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { getErrorMessage } from "@/lib/api/errorMessages";
+import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
+import { EmailVerificationBanner } from "@/features/authentication/components/EmailVerificationBanner";
 import { getProfile } from "../api/profileClient";
 import type { ProfileResponse } from "../types";
 import { AvatarField } from "./AvatarField";
@@ -29,6 +31,7 @@ type LoadState =
   | { status: "error"; message: string };
 
 export function ProfileDashboard({ profileId }: { profileId: string }) {
+  const { user: currentUser } = useCurrentUser();
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   useEffect(() => {
@@ -61,7 +64,12 @@ export function ProfileDashboard({ profileId }: { profileId: string }) {
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,320px)_1fr]">
-      <ProfileView profile={profile} />
+      <div className="space-y-4">
+        <ProfileView profile={profile} />
+        {currentUser && !currentUser.emailVerified && (
+          <EmailVerificationBanner />
+        )}
+      </div>
 
       <div className="space-y-6">
         <section className="space-y-3 rounded-xl border border-border bg-card p-5">

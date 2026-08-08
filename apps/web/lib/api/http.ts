@@ -101,6 +101,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       method,
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: 'include',
       signal: combinedSignal,
     });
   } catch (error) {
