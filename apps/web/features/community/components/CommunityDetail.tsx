@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getErrorMessage } from "@/lib/api/errorMessages";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
+import { EventList } from "@/features/events";
 import type { CommunityResponse } from "../types";
 import {
   getCommunityBySlug,
@@ -130,6 +132,23 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
           </p>
         </div>
       )}
+
+      <div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Events</h2>
+          {user && isMember && (
+            <Link
+              href={`/communities/${slug}/events/new`}
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              + Create Event
+            </Link>
+          )}
+        </div>
+        <div className="mt-2">
+          <EventList communityId={community.id} />
+        </div>
+      </div>
     </div>
   );
 }

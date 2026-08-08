@@ -15,6 +15,15 @@ import { ProfileGatewayAdapter } from './modules/authentication/infrastructure/P
 import { RegisterProfileService } from './modules/profile/application/RegisterProfileService';
 import { PrismaCommunityRepository } from './modules/community/infrastructure/PrismaCommunityRepository';
 import { PrismaPermissionPolicyRepository } from './modules/authorization/infrastructure/PrismaPermissionPolicyRepository';
+import { PrismaEventRepository } from './modules/event-management/infrastructure/PrismaEventRepository';
+import { PrismaEventCommitteeRepository } from './modules/committee/infrastructure/PrismaEventCommitteeRepository';
+import { PrismaRegistrationRepository } from './modules/participation/infrastructure/PrismaRegistrationRepository';
+import { PrismaEnrollmentRepository } from './modules/participation/infrastructure/PrismaEnrollmentRepository';
+import { PrismaAttendanceRepository } from './modules/participation/infrastructure/PrismaAttendanceRepository';
+import { PrismaCertificateRepository } from './modules/participation/infrastructure/PrismaCertificateRepository';
+import { PrismaOperationalTaskRepository } from './modules/volunteer/infrastructure/PrismaOperationalTaskRepository';
+import { PrismaAnnouncementRepository } from './modules/announcement/infrastructure/PrismaAnnouncementRepository';
+import { PrismaMetricRepository } from './modules/analytics/infrastructure/PrismaMetricRepository';
 import { VerifyIdentityService } from './modules/profile/application/VerifyIdentityService';
 import { EMAIL_VERIFIED } from './modules/authentication/domain/events/EmailVerified';
 import { makeVerifyProfileOnEmailVerified } from './modules/authentication/application/subscribers/verifyProfileOnEmailVerified';
@@ -44,6 +53,15 @@ const profileRepository = new PrismaProfileRepository(prisma);
 const credentialRepository = new PrismaUserCredentialRepository(prisma);
 const communityRepository = new PrismaCommunityRepository(prisma);
 const permissionPolicyRepository = new PrismaPermissionPolicyRepository(prisma);
+const eventRepository = new PrismaEventRepository(prisma);
+const committeeRepository = new PrismaEventCommitteeRepository(prisma);
+const registrationRepository = new PrismaRegistrationRepository(prisma);
+const enrollmentRepository = new PrismaEnrollmentRepository(prisma);
+const attendanceRepository = new PrismaAttendanceRepository(prisma);
+const certificateRepository = new PrismaCertificateRepository(prisma);
+const taskRepository = new PrismaOperationalTaskRepository(prisma);
+const announcementRepository = new PrismaAnnouncementRepository(prisma);
+const metricRepository = new PrismaMetricRepository(prisma);
 const passwordHasher = new Argon2PasswordHasher();
 const tokenHasher = new Sha256TokenHasher();
 const tokenGenerator = new CryptoRandomTokenGenerator();
@@ -91,6 +109,35 @@ const app = createApp({
   },
   authorizationDependencies: {
     permissionPolicyRepository,
+  },
+  eventDependencies: {
+    eventRepository,
+    eventPublisher,
+  },
+  committeeDependencies: {
+    committeeRepository,
+    eventPublisher,
+  },
+  participationDependencies: {
+    registrationRepository,
+    enrollmentRepository,
+    attendanceRepository,
+    certificateRepository,
+    eventPublisher,
+  },
+  volunteerDependencies: {
+    taskRepository,
+    eventPublisher,
+  },
+  announcementDependencies: {
+    announcementRepository,
+    eventPublisher,
+  },
+  analyticsDependencies: {
+    metricRepository,
+  },
+  recommendationDependencies: {
+    metricRepository,
   },
 });
 

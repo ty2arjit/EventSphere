@@ -10,6 +10,13 @@ import { createAuthenticateMiddleware } from './modules/authentication/api/middl
 import { JwtService } from './modules/authentication/infrastructure/JoseJwtService';
 import { createCommunityRouter, CommunityRouterDependencies } from './modules/community/api/routes/community.routes';
 import { createAuthorizationRouter, AuthorizationRouterDependencies } from './modules/authorization/api/routes/authorization.routes';
+import { createEventRouter, EventRouterDependencies } from './modules/event-management/api/routes/event.routes';
+import { createCommitteeRouter, CommitteeRouterDependencies } from './modules/committee/api/routes/committee.routes';
+import { createParticipationRouter, ParticipationRouterDependencies } from './modules/participation/api/routes/participation.routes';
+import { createVolunteerRouter, VolunteerRouterDependencies } from './modules/volunteer/api/routes/volunteer.routes';
+import { createAnnouncementRouter, AnnouncementRouterDependencies } from './modules/announcement/api/routes/announcement.routes';
+import { createAnalyticsRouter, AnalyticsRouterDependencies } from './modules/analytics/api/routes/analytics.routes';
+import { createRecommendationRouter, RecommendationRouterDependencies } from './modules/recommendation/api/routes/recommendation.routes';
 import { EventPublisher } from './shared/events/EventPublisher';
 import { errorHandler } from './shared/errors/errorHandler';
 import { httpLoggerOptions, logger } from './shared/logger';
@@ -23,6 +30,13 @@ export interface AppDependencies {
   authDependencies?: AuthRouterDependencies;
   communityDependencies?: CommunityRouterDependencies;
   authorizationDependencies?: AuthorizationRouterDependencies;
+  eventDependencies?: EventRouterDependencies;
+  committeeDependencies?: CommitteeRouterDependencies;
+  participationDependencies?: ParticipationRouterDependencies;
+  volunteerDependencies?: VolunteerRouterDependencies;
+  announcementDependencies?: AnnouncementRouterDependencies;
+  analyticsDependencies?: AnalyticsRouterDependencies;
+  recommendationDependencies?: RecommendationRouterDependencies;
 }
 
 /**
@@ -39,6 +53,13 @@ export function createApp({
   authDependencies,
   communityDependencies,
   authorizationDependencies,
+  eventDependencies,
+  committeeDependencies,
+  participationDependencies,
+  volunteerDependencies,
+  announcementDependencies,
+  analyticsDependencies,
+  recommendationDependencies,
 }: AppDependencies): Express {
   const app = express();
 
@@ -112,6 +133,34 @@ export function createApp({
 
   if (authorizationDependencies) {
     app.use('/api/v1/authorization', createAuthorizationRouter(authorizationDependencies));
+  }
+
+  if (eventDependencies) {
+    app.use('/api/v1/events', createEventRouter(eventDependencies));
+  }
+
+  if (committeeDependencies) {
+    app.use('/api/v1/committees', createCommitteeRouter(committeeDependencies));
+  }
+
+  if (participationDependencies) {
+    app.use('/api/v1/participation', createParticipationRouter(participationDependencies));
+  }
+
+  if (volunteerDependencies) {
+    app.use('/api/v1/tasks', createVolunteerRouter(volunteerDependencies));
+  }
+
+  if (announcementDependencies) {
+    app.use('/api/v1/announcements', createAnnouncementRouter(announcementDependencies));
+  }
+
+  if (analyticsDependencies) {
+    app.use('/api/v1/analytics', createAnalyticsRouter(analyticsDependencies));
+  }
+
+  if (recommendationDependencies) {
+    app.use('/api/v1/ai', createRecommendationRouter(recommendationDependencies));
   }
 
   // Must be registered last — Express identifies error-handling middleware
