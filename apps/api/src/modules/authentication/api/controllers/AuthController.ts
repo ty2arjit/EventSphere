@@ -14,7 +14,12 @@ import { AuthMapper } from '../mappers/AuthMapper';
 import { AuthConfig } from '../../application/AuthConfig';
 import { AcknowledgementResponseDto } from '../dto/AuthenticatedUserResponseDto';
 
-const IS_PROD = process.env.NODE_ENV === 'production';
+// Deliberately NOT keyed on NODE_ENV — setting NODE_ENV=production makes
+// pnpm skip devDependencies during install, which breaks the build (prisma
+// and typescript are both devDependencies, both needed to build this app).
+// RAILWAY_ENVIRONMENT is Railway's own auto-injected variable, unrelated to
+// npm/pnpm's install behavior, and serves the same purpose here.
+const IS_PROD = process.env.RAILWAY_ENVIRONMENT === 'production';
 
 // The web app (Vercel) and API (Railway) are different registrable domains,
 // so cookies must be SameSite=None to survive a cross-site fetch — Lax only

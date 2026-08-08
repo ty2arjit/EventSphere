@@ -1,8 +1,11 @@
 import pino from 'pino';
 import type { Options } from 'pino-http';
 
+// RAILWAY_ENVIRONMENT, not NODE_ENV — setting NODE_ENV=production makes pnpm
+// skip devDependencies during install, which breaks the build (prisma and
+// typescript are both devDependencies needed to build this app).
 export const logger = pino({
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  level: process.env.RAILWAY_ENVIRONMENT === 'production' ? 'info' : 'debug',
 });
 
 /**
