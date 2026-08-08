@@ -48,6 +48,12 @@ export default function Home() {
               >
                 Browse communities
               </Link>
+              <Link
+                href="/verify"
+                className="inline-flex h-11 items-center rounded-md border px-6 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Verify certificate
+              </Link>
             </div>
           </div>
         </PageTransition>
