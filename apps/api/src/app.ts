@@ -63,6 +63,15 @@ export function createApp({
 }: AppDependencies): Express {
   const app = express();
 
+  // Railway terminates TLS and proxies every request through its own edge —
+  // without this, req.ip (and X-Forwarded-For) resolve to Railway's internal
+  // proxy address for every visitor, not the real client. That collapses
+  // express-rate-limit's per-IP keying into one shared bucket for all users
+  // combined: once any 10 requests land within the window, everyone gets
+  // rate-limited together, not 10 requests per person. `1` trusts exactly one
+  // hop (Railway's edge), matching the actual proxy topology here.
+  app.set('trust proxy', 1);
+
   // Suppresses the `x-powered-by: Express` response header. Volunteering the
   // server technology only helps someone matching known Express CVEs.
   app.disable('x-powered-by');
