@@ -22,6 +22,7 @@ const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefi
 interface CommitteeDetailProps {
   eventId: string;
   communityId: string;
+  canManage?: boolean;
 }
 
 type State =
@@ -30,7 +31,7 @@ type State =
   | { status: "loaded"; committee: CommitteeResponse }
   | { status: "error"; message: string };
 
-export function CommitteeDetail({ eventId, communityId }: CommitteeDetailProps) {
+export function CommitteeDetail({ eventId, communityId, canManage = false }: CommitteeDetailProps) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [acting, setActing] = useState(false);
 
@@ -76,9 +77,11 @@ export function CommitteeDetail({ eventId, communityId }: CommitteeDetailProps) 
     return (
       <div className="rounded border p-4 text-center">
         <p className="text-muted-foreground">No committee set up yet.</p>
-        <Button className="mt-2" onClick={handleCreate} disabled={acting}>
-          {acting ? "Creating…" : "Create Committee"}
-        </Button>
+        {canManage && (
+          <Button className="mt-2" onClick={handleCreate} disabled={acting}>
+            {acting ? "Creating…" : "Create Committee"}
+          </Button>
+        )}
       </div>
     );
   }
@@ -112,13 +115,15 @@ export function CommitteeDetail({ eventId, communityId }: CommitteeDetailProps) 
           <p className="text-sm text-muted-foreground">No roles defined yet.</p>
         )}
 
-        <div className="flex gap-2">
-          {nextAction && (
-            <Button size="sm" onClick={() => handleTransition(nextAction.target)} disabled={acting}>
-              {acting ? "Processing…" : nextAction.label}
-            </Button>
-          )}
-        </div>
+        {canManage && (
+          <div className="flex gap-2">
+            {nextAction && (
+              <Button size="sm" onClick={() => handleTransition(nextAction.target)} disabled={acting}>
+                {acting ? "Processing…" : nextAction.label}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </FadeIn>
   );

@@ -14,7 +14,7 @@ import { TaskBoard, CreateTaskForm } from "@/features/volunteer";
 import { AnnouncementFeed, CreateAnnouncementForm } from "@/features/announcement";
 import { EventDashboardPanel, AIAssistant } from "@/features/analytics";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
-import { canManage } from "@/features/authorization/api/authorizationClient";
+import { useCanManage } from "@/features/authorization";
 
 const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefined> = {
   Draft: { label: "Publish", target: "Published" },
@@ -35,7 +35,6 @@ export function EventDetail({ slug }: { slug: string }) {
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
   const [announcementRefreshKey, setAnnouncementRefreshKey] = useState(0);
   const [enrollmentRefreshKey, setEnrollmentRefreshKey] = useState(0);
-  const [isOrganizer, setIsOrganizer] = useState(false);
   const { user } = useCurrentUser();
 
   useEffect(() => {
@@ -50,17 +49,15 @@ export function EventDetail({ slug }: { slug: string }) {
   const communityId = state.status === "loaded" ? state.event.communityId : null;
   const eventId = state.status === "loaded" ? state.event.id : null;
 
-  useEffect(() => {
-    if (!communityId || !eventId || !user) {
-      setIsOrganizer(false);
-      return;
-    }
-    const controller = new AbortController();
-    canManage("event:manage", communityId, eventId, { signal: controller.signal }).then((result) => {
-      if (result.ok) setIsOrganizer(result.data.allowed);
-    });
-    return () => controller.abort();
-  }, [communityId, eventId, user]);
+  // Each section is gated by its own permission — the backend enforces these
+  // independently (a CommitteeRole grant might carry task:manage without
+  // announcement:manage), so a single shared "isOrganizer" would show
+  // controls that fail with 403 for anyone who isn't the community owner.
+  const canManageEvent = useCanManage("event:manage", communityId, eventId, user?.id);
+  const canManageCommittee = useCanManage("committee:manage", communityId, eventId, user?.id);
+  const canManageParticipation = useCanManage("participation:manage", communityId, eventId, user?.id);
+  const canManageTasks = useCanManage("task:manage", communityId, eventId, user?.id);
+  const canManageAnnouncements = useCanManage("announcement:manage", communityId, eventId, user?.id);
 
   if (state.status === "loading") return <p className="text-muted-foreground">Loading event…</p>;
   if (state.status === "error") return <p className="text-sm text-destructive">{state.message}</p>;
@@ -138,27 +135,33 @@ export function EventDetail({ slug }: { slug: string }) {
           </div>
         )}
 
-        <div className="flex gap-2">
-          {nextAction && (
-            <Button onClick={() => handleTransition(nextAction.target)} disabled={transitioning}>
-              {transitioning ? "Processing…" : nextAction.label}
-            </Button>
-          )}
-          {(event.state === "Draft" || event.state === "Published") && (
-            <Button
-              variant="outline"
-              onClick={() => handleTransition("Cancelled")}
-              disabled={transitioning}
-            >
-              Cancel Event
-            </Button>
-          )}
-        </div>
+        {canManageEvent && (
+          <div className="flex gap-2">
+            {nextAction && (
+              <Button onClick={() => handleTransition(nextAction.target)} disabled={transitioning}>
+                {transitioning ? "Processing…" : nextAction.label}
+              </Button>
+            )}
+            {(event.state === "Draft" || event.state === "Published") && (
+              <Button
+                variant="outline"
+                onClick={() => handleTransition("Cancelled")}
+                disabled={transitioning}
+              >
+                Cancel Event
+              </Button>
+            )}
+          </div>
+        )}
 
         <div>
           <h2 className="text-lg font-semibold">Committee</h2>
           <div className="mt-2">
-            <CommitteeDetail eventId={event.id} communityId={event.communityId} />
+            <CommitteeDetail
+              eventId={event.id}
+              communityId={event.communityId}
+              canManage={canManageCommittee}
+            />
           </div>
         </div>
 
@@ -167,13 +170,13 @@ export function EventDetail({ slug }: { slug: string }) {
           <div className="mt-2 space-y-4">
             <RegistrationPanel
               eventId={event.id}
-              isOrganizer={isOrganizer}
+              isOrganizer={canManageParticipation}
               onEnrolled={() => setEnrollmentRefreshKey((k) => k + 1)}
             />
             <EnrollmentList
               key={enrollmentRefreshKey}
               eventId={event.id}
-              isOrganizer={isOrganizer}
+              isOrganizer={canManageParticipation}
             />
           </div>
         </div>
@@ -181,7 +184,7 @@ export function EventDetail({ slug }: { slug: string }) {
         <div>
           <h2 className="text-lg font-semibold">Tasks</h2>
           <div className="mt-2 space-y-4">
-            {isOrganizer && (
+            {canManageTasks && (
               <CreateTaskForm
                 eventId={event.id}
                 onCreated={() => setTaskRefreshKey((k) => k + 1)}
@@ -192,7 +195,7 @@ export function EventDetail({ slug }: { slug: string }) {
         </div>
 
         <div className="space-y-4">
-          {isOrganizer && (
+          {canManageAnnouncements && (
             <CreateAnnouncementForm
               eventId={event.id}
               onCreated={() => setAnnouncementRefreshKey((k) => k + 1)}
@@ -201,7 +204,7 @@ export function EventDetail({ slug }: { slug: string }) {
           <AnnouncementFeed
             key={announcementRefreshKey}
             eventId={event.id}
-            isOrganizer={isOrganizer}
+            isOrganizer={canManageAnnouncements}
           />
         </div>
 

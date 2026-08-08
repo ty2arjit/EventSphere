@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getErrorMessage } from "@/lib/api/errorMessages";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
 import { EventList } from "@/features/events";
-import { canManage } from "@/features/authorization/api/authorizationClient";
+import { useCanManage } from "@/features/authorization";
 import type { CommunityResponse } from "../types";
 import {
   getCommunityBySlug,
@@ -28,7 +28,6 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
   const [state, setState] = useState<State>({ status: "loading" });
   const { user } = useCurrentUser();
   const [actionLoading, setActionLoading] = useState(false);
-  const [canCreateEvent, setCanCreateEvent] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -43,18 +42,7 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
   }, [slug]);
 
   const communityId = state.status === "loaded" ? state.community.id : null;
-
-  useEffect(() => {
-    if (!communityId || !user) {
-      setCanCreateEvent(false);
-      return;
-    }
-    const controller = new AbortController();
-    canManage("event:manage", communityId, null, { signal: controller.signal }).then((result) => {
-      if (result.ok) setCanCreateEvent(result.data.allowed);
-    });
-    return () => controller.abort();
-  }, [communityId, user]);
+  const canCreateEvent = useCanManage("event:manage", communityId, null, user?.id);
 
   if (state.status === "loading") {
     return <p className="text-muted-foreground">Loading community…</p>;
