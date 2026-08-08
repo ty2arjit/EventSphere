@@ -13,6 +13,8 @@ import { EnrollmentList } from "@/features/participation";
 import { TaskBoard, CreateTaskForm } from "@/features/volunteer";
 import { AnnouncementFeed, CreateAnnouncementForm } from "@/features/announcement";
 import { EventDashboardPanel, AIAssistant } from "@/features/analytics";
+import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
+import { getCommunityById } from "@/features/community/api/communityClient";
 
 const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefined> = {
   Draft: { label: "Publish", target: "Published" },
@@ -33,6 +35,8 @@ export function EventDetail({ slug }: { slug: string }) {
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
   const [announcementRefreshKey, setAnnouncementRefreshKey] = useState(0);
   const [enrollmentRefreshKey, setEnrollmentRefreshKey] = useState(0);
+  const [isOrganizer, setIsOrganizer] = useState(false);
+  const { user } = useCurrentUser();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,6 +46,24 @@ export function EventDetail({ slug }: { slug: string }) {
     });
     return () => controller.abort();
   }, [slug]);
+
+  const communityId = state.status === "loaded" ? state.event.communityId : null;
+
+  useEffect(() => {
+    if (!communityId || !user) {
+      setIsOrganizer(false);
+      return;
+    }
+    const controller = new AbortController();
+    getCommunityById(communityId, { signal: controller.signal }).then((result) => {
+      if (!result.ok) return;
+      const community = result.data;
+      const isOwner = community.ownerId === user.id;
+      const isMember = community.members.some((m) => m.userId === user.id);
+      setIsOrganizer(isOwner || isMember);
+    });
+    return () => controller.abort();
+  }, [communityId, user]);
 
   if (state.status === "loading") return <p className="text-muted-foreground">Loading event…</p>;
   if (state.status === "error") return <p className="text-sm text-destructive">{state.message}</p>;
@@ -148,30 +170,42 @@ export function EventDetail({ slug }: { slug: string }) {
           <div className="mt-2 space-y-4">
             <RegistrationPanel
               eventId={event.id}
-              isOrganizer
+              isOrganizer={isOrganizer}
               onEnrolled={() => setEnrollmentRefreshKey((k) => k + 1)}
             />
-            <EnrollmentList key={enrollmentRefreshKey} eventId={event.id} isOrganizer />
+            <EnrollmentList
+              key={enrollmentRefreshKey}
+              eventId={event.id}
+              isOrganizer={isOrganizer}
+            />
           </div>
         </div>
 
         <div>
           <h2 className="text-lg font-semibold">Tasks</h2>
           <div className="mt-2 space-y-4">
-            <CreateTaskForm
-              eventId={event.id}
-              onCreated={() => setTaskRefreshKey((k) => k + 1)}
-            />
+            {isOrganizer && (
+              <CreateTaskForm
+                eventId={event.id}
+                onCreated={() => setTaskRefreshKey((k) => k + 1)}
+              />
+            )}
             <TaskBoard key={taskRefreshKey} eventId={event.id} />
           </div>
         </div>
 
         <div className="space-y-4">
-          <CreateAnnouncementForm
+          {isOrganizer && (
+            <CreateAnnouncementForm
+              eventId={event.id}
+              onCreated={() => setAnnouncementRefreshKey((k) => k + 1)}
+            />
+          )}
+          <AnnouncementFeed
+            key={announcementRefreshKey}
             eventId={event.id}
-            onCreated={() => setAnnouncementRefreshKey((k) => k + 1)}
+            isOrganizer={isOrganizer}
           />
-          <AnnouncementFeed key={announcementRefreshKey} eventId={event.id} isOrganizer />
         </div>
 
         <div>
