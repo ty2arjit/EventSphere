@@ -32,7 +32,7 @@ export class VolunteerController {
 
   transition = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await this.service.transition(req.params.id as string, req.body.action);
+      await this.service.transition(req.params.id as string, req.body.targetStatus);
       res.status(204).end();
     } catch (err) { next(err); }
   };

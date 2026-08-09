@@ -6,7 +6,7 @@ export class AnnouncementController {
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const a = await this.service.create(req.body.authorId, req.body.title, req.body.body, {
+      const a = await this.service.create(req.user!.id, req.body.title, req.body.body, {
         communityId: req.body.communityId,
         eventId: req.body.eventId,
         priority: req.body.priority,

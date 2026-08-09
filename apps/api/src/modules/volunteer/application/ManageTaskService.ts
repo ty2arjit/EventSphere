@@ -5,6 +5,17 @@ import type { TaskPriority } from "../domain/valueObjects/TaskPriority";
 import { createDomainEvent } from "../../../shared/events/DomainEvent";
 import { TaskNotFoundError } from "../domain/errors";
 
+// "InProgress" is reachable from both Todo (via start) and Blocked (via
+// unblock), so the target status alone doesn't determine the FSM method —
+// unlike Committee's TRANSITION_METHODS, this has to be keyed by the task's
+// current status too. Mirrors the frontend's NEXT_STATUS map (TaskBoard.tsx),
+// which is itself keyed by current status for the same reason.
+const TRANSITION_METHOD_BY_STATUS: Record<string, Record<string, "start" | "block" | "unblock" | "complete" | "cancel">> = {
+  Todo: { InProgress: "start", Cancelled: "cancel" },
+  InProgress: { Blocked: "block", Completed: "complete", Cancelled: "cancel" },
+  Blocked: { InProgress: "unblock", Cancelled: "cancel" },
+};
+
 export class ManageTaskService {
   constructor(
     private readonly repo: OperationalTaskRepository,
@@ -25,9 +36,11 @@ export class ManageTaskService {
     return task;
   }
 
-  async transition(taskId: string, action: "start" | "block" | "unblock" | "complete" | "cancel"): Promise<void> {
+  async transition(taskId: string, targetStatus: string): Promise<void> {
     const task = await this.load(taskId);
-    task[action]();
+    const method = TRANSITION_METHOD_BY_STATUS[task.status]?.[targetStatus];
+    if (!method) throw new Error(`Cannot transition task from ${task.status} to ${targetStatus}`);
+    task[method]();
     await this.repo.update(task);
   }
 
