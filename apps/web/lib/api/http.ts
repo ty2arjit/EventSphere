@@ -94,11 +94,30 @@ const AUTH_PATHS_EXEMPT_FROM_REFRESH = ['/api/v1/auth/refresh', '/api/v1/auth/lo
 // stuck at "refreshing" if the refresh fails and startles a later attempt.
 let refreshInFlight: Promise<boolean> | null = null;
 
+/**
+ * Present on every request, body or not.
+ *
+ * Session cookies must be SameSite=None to survive the Vercel/Railway
+ * cross-site split (see AuthController), which also means the browser will
+ * attach them to a plain, non-fetch cross-site form POST — CORS's origin
+ * check only gates whether *script* on another origin can read a response,
+ * not whether the browser sends a "simple" cross-site request in the first
+ * place. A bare HTML <form> cannot set a custom header, so requiring one on
+ * every call forces even bodyless requests into a CORS preflight, where our
+ * strict origin allowlist rejects anything that isn't this app.
+ */
+const CSRF_HEADERS = { 'X-Requested-With': 'XMLHttpRequest' } as const;
+
+function buildHeaders(body: unknown): Record<string, string> {
+  return body === undefined ? { ...CSRF_HEADERS } : { ...CSRF_HEADERS, 'Content-Type': 'application/json' };
+}
+
 function refreshAccessToken(): Promise<boolean> {
   if (!refreshInFlight) {
     refreshInFlight = fetch(`${getApiBaseUrl()}/api/v1/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
+      headers: CSRF_HEADERS,
     })
       .then((res) => res.ok)
       .catch(() => false)
@@ -129,7 +148,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   try {
     response = await fetch(url, {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers: buildHeaders(body),
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials: 'include',
       signal: combinedSignal,
@@ -154,7 +173,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       try {
         response = await fetch(url, {
           method,
-          headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+          headers: buildHeaders(body),
           body: body === undefined ? undefined : JSON.stringify(body),
           credentials: 'include',
           signal: combinedSignal,

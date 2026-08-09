@@ -84,6 +84,24 @@ export function createApp({
   app.use(cookieParser());
   app.use(express.json());
 
+  // Defense-in-depth against CSRF, alongside the CORS origin allowlist above.
+  // Auth cookies are SameSite=None (required for the Vercel/Railway
+  // cross-site split), which means the browser attaches them to a plain
+  // cross-site <form> POST too — CORS only gates whether *script* on another
+  // origin can read the response, not whether the browser sends a "simple"
+  // request in the first place. The frontend sets this header on every call
+  // (see apps/web/lib/api/http.ts); a bare HTML form cannot set custom
+  // headers at all, so this alone blocks that attack vector even if CORS
+  // were ever misconfigured to trust an unintended origin.
+  app.use((req, res, next) => {
+    const isStateChanging = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+    if (isStateChanging && req.headers['x-requested-with'] !== 'XMLHttpRequest') {
+      res.status(403).json({ error: 'CSRF_HEADER_MISSING', message: 'Missing required X-Requested-With header' });
+      return;
+    }
+    next();
+  });
+
   if (jwtService) {
     app.use(createAuthenticateMiddleware(jwtService));
   }

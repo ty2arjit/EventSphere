@@ -78,7 +78,7 @@ describe('CORS', () => {
     const app = buildTestApp();
 
     const res = await request(app)
-      .post('/api/v1/profile')
+      .post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest')
       .set('Origin', 'http://localhost:3000')
       .send({ email: 'cors@example.com', name: 'CORS Test' });
 
@@ -90,11 +90,43 @@ describe('CORS', () => {
     const app = buildTestApp();
 
     const res = await request(app)
-      .post('/api/v1/profile')
+      .post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest')
       .set('Origin', 'https://evil.example.com')
       .send({ email: 'evil@example.com', name: 'Evil' });
 
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
+  });
+});
+
+describe('CSRF protection', () => {
+  it('rejects a state-changing request missing X-Requested-With — the header a bare cross-site <form> cannot set', async () => {
+    const app = buildTestApp();
+
+    const res = await request(app)
+      .post('/api/v1/profile')
+      .send({ email: 'csrf@example.com', name: 'CSRF Test' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('CSRF_HEADER_MISSING');
+  });
+
+  it('allows a state-changing request that carries the header', async () => {
+    const app = buildTestApp();
+
+    const res = await request(app)
+      .post('/api/v1/profile')
+      .set('X-Requested-With', 'XMLHttpRequest')
+      .send({ email: 'csrf-ok@example.com', name: 'CSRF OK' });
+
+    expect(res.status).toBe(201);
+  });
+
+  it('does not require the header on GET — only state-changing methods are gated', async () => {
+    const app = buildTestApp();
+
+    const res = await request(app).get('/api/v1/profile/does-not-exist');
+
+    expect(res.status).not.toBe(403);
   });
 });
 
@@ -103,7 +135,7 @@ describe('POST /api/v1/profile', () => {
     const app = buildTestApp();
 
     const res = await request(app)
-      .post('/api/v1/profile')
+      .post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest')
       .send({ email: 'api-test@example.com', name: 'API Test' });
 
     expect(res.status).toBe(201);
@@ -119,7 +151,7 @@ describe('POST /api/v1/profile', () => {
     const app = buildTestApp();
 
     const res = await request(app)
-      .post('/api/v1/profile')
+      .post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest')
       .send({ email: 'not-an-email', name: '' });
 
     expect(res.status).toBe(400);
@@ -130,11 +162,11 @@ describe('POST /api/v1/profile', () => {
     const app = buildTestApp();
 
     await request(app)
-      .post('/api/v1/profile')
+      .post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest')
       .send({ email: 'dup@example.com', name: 'First' });
 
     const res = await request(app)
-      .post('/api/v1/profile')
+      .post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest')
       .send({ email: 'dup@example.com', name: 'Second' });
 
     expect(res.status).toBe(409);
@@ -145,7 +177,7 @@ describe('POST /api/v1/profile', () => {
     const app = buildTestApp();
 
     const res = await request(app)
-      .post('/api/v1/profile')
+      .post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest')
       .send({ email: 'full-shape@example.com', name: 'Full Shape' });
 
     expect(res.body).toMatchObject({
@@ -159,7 +191,7 @@ describe('POST /api/v1/profile', () => {
 });
 
 async function registerProfile(app: ReturnType<typeof buildTestApp>, email: string) {
-  const res = await request(app).post('/api/v1/profile').send({ email, name: 'Test User' });
+  const res = await request(app).post('/api/v1/profile').set('X-Requested-With', 'XMLHttpRequest').send({ email, name: 'Test User' });
   return res.body.id as string;
 }
 
@@ -188,7 +220,7 @@ describe('PATCH /api/v1/profile/:id', () => {
     const id = await registerProfile(app, 'patch-profile@example.com');
 
     const res = await request(app)
-      .patch(`/api/v1/profile/${id}`)
+      .patch(`/api/v1/profile/${id}`).set('X-Requested-With', 'XMLHttpRequest')
       .send({ bio: 'Hello world', headline: 'Engineer' });
 
     expect(res.status).toBe(200);
@@ -200,7 +232,7 @@ describe('PATCH /api/v1/profile/:id', () => {
     const id = await registerProfile(app, 'patch-invalid@example.com');
 
     const res = await request(app)
-      .patch(`/api/v1/profile/${id}`)
+      .patch(`/api/v1/profile/${id}`).set('X-Requested-With', 'XMLHttpRequest')
       .send({ graduationYear: 1900 });
 
     expect(res.status).toBe(400);
@@ -210,7 +242,7 @@ describe('PATCH /api/v1/profile/:id', () => {
   it('returns 404 for an unknown id', async () => {
     const app = buildTestApp();
 
-    const res = await request(app).patch('/api/v1/profile/does-not-exist').send({ bio: 'Hi' });
+    const res = await request(app).patch('/api/v1/profile/does-not-exist').set('X-Requested-With', 'XMLHttpRequest').send({ bio: 'Hi' });
     expect(res.status).toBe(404);
   });
 });
@@ -221,7 +253,7 @@ describe('PATCH /api/v1/profile/:id/avatar', () => {
     const id = await registerProfile(app, 'patch-avatar@example.com');
 
     const res = await request(app)
-      .patch(`/api/v1/profile/${id}/avatar`)
+      .patch(`/api/v1/profile/${id}/avatar`).set('X-Requested-With', 'XMLHttpRequest')
       .send({ avatarUrl: 'https://example.com/a.png' });
 
     expect(res.status).toBe(200);
@@ -233,7 +265,7 @@ describe('PATCH /api/v1/profile/:id/avatar', () => {
     const id = await registerProfile(app, 'patch-avatar-bad@example.com');
 
     const res = await request(app)
-      .patch(`/api/v1/profile/${id}/avatar`)
+      .patch(`/api/v1/profile/${id}/avatar`).set('X-Requested-With', 'XMLHttpRequest')
       .send({ avatarUrl: 'not-a-url' });
 
     expect(res.status).toBe(400);
@@ -246,7 +278,7 @@ describe('PATCH /api/v1/profile/:id/preferences', () => {
     const id = await registerProfile(app, 'patch-prefs@example.com');
 
     const res = await request(app)
-      .patch(`/api/v1/profile/${id}/preferences`)
+      .patch(`/api/v1/profile/${id}/preferences`).set('X-Requested-With', 'XMLHttpRequest')
       .send({ theme: 'dark', notifyInApp: false });
 
     expect(res.status).toBe(200);
@@ -258,7 +290,7 @@ describe('PATCH /api/v1/profile/:id/preferences', () => {
     const id = await registerProfile(app, 'patch-prefs-bad@example.com');
 
     const res = await request(app)
-      .patch(`/api/v1/profile/${id}/preferences`)
+      .patch(`/api/v1/profile/${id}/preferences`).set('X-Requested-With', 'XMLHttpRequest')
       .send({ theme: 'neon' });
 
     expect(res.status).toBe(400);
@@ -270,7 +302,7 @@ describe('POST /api/v1/profile/:id/verify', () => {
     const app = buildTestApp();
     const id = await registerProfile(app, 'verify@example.com');
 
-    const res = await request(app).post(`/api/v1/profile/${id}/verify`);
+    const res = await request(app).post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest');
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('verified');
@@ -281,8 +313,8 @@ describe('POST /api/v1/profile/:id/verify', () => {
     const app = buildTestApp();
     const id = await registerProfile(app, 'verify-twice@example.com');
 
-    await request(app).post(`/api/v1/profile/${id}/verify`);
-    const res = await request(app).post(`/api/v1/profile/${id}/verify`);
+    await request(app).post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest');
+    const res = await request(app).post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest');
 
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('ALREADY_VERIFIED');
@@ -295,7 +327,7 @@ describe('POST /api/v1/profile/:id/deactivate', () => {
     const id = await registerProfile(app, 'deactivate-not-active@example.com');
 
     // freshly registered profiles start as 'registered', not 'active'
-    const res = await request(app).post(`/api/v1/profile/${id}/deactivate`);
+    const res = await request(app).post(`/api/v1/profile/${id}/deactivate`).set('X-Requested-With', 'XMLHttpRequest');
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('INVALID_LIFECYCLE_TRANSITION');
@@ -317,7 +349,7 @@ describe('POST /api/v1/profile/:id/deactivate', () => {
       corsOrigins: ['http://localhost:3000'],
     });
 
-    const res = await request(app).post(`/api/v1/profile/${user.id}/deactivate`);
+    const res = await request(app).post(`/api/v1/profile/${user.id}/deactivate`).set('X-Requested-With', 'XMLHttpRequest');
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('inactive');

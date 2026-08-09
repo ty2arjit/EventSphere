@@ -51,10 +51,10 @@ describe('request — success', () => {
     const [, init] = spy.mock.calls[0] as unknown as [string, RequestInit];
     expect(init.method).toBe('POST');
     expect(init.body).toBe(JSON.stringify({ email: 'a@b.co' }));
-    expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(init.headers).toEqual({ 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' });
   });
 
-  it('omits content-type and body for bodyless requests', async () => {
+  it('omits content-type but keeps the CSRF header for bodyless requests', async () => {
     const spy = vi.fn(async () => jsonResponse(200, {}));
     mockFetch(spy as unknown as typeof fetch);
 
@@ -62,7 +62,17 @@ describe('request — success', () => {
 
     const [, init] = spy.mock.calls[0] as unknown as [string, RequestInit];
     expect(init.body).toBeUndefined();
-    expect(init.headers).toBeUndefined();
+    expect(init.headers).toEqual({ 'X-Requested-With': 'XMLHttpRequest' });
+  });
+
+  it('sends the CSRF header on every request — a bare cross-site <form> cannot set custom headers, so this forces a CORS preflight', async () => {
+    const spy = vi.fn(async () => jsonResponse(200, {}));
+    mockFetch(spy as unknown as typeof fetch);
+
+    await request('/api/v1/thing');
+
+    const [, init] = spy.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Requested-With']).toBe('XMLHttpRequest');
   });
 });
 
