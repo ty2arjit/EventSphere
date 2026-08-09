@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
 import { FadeIn } from "@/components/motion/FadeIn";
+import { Users2 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/errorMessages";
 import type { CommitteeResponse } from "../types";
 import {
@@ -70,15 +73,15 @@ export function CommitteeDetail({ eventId, communityId, canManage = false }: Com
     setActing(false);
   }
 
-  if (state.status === "loading") return <p className="text-muted-foreground">Loading committee…</p>;
+  if (state.status === "loading") return <Spinner label="Loading committee…" />;
   if (state.status === "error") return <p className="text-sm text-destructive">{state.message}</p>;
 
   if (state.status === "none") {
     return (
-      <div className="rounded border p-4 text-center">
-        <p className="text-muted-foreground">No committee set up yet.</p>
+      <div className="space-y-3">
+        <EmptyState icon={Users2} message="No committee set up yet." />
         {canManage && (
-          <Button className="mt-2" onClick={handleCreate} disabled={acting}>
+          <Button onClick={handleCreate} disabled={acting}>
             {acting ? "Creating…" : "Create Committee"}
           </Button>
         )}
@@ -93,16 +96,21 @@ export function CommitteeDetail({ eventId, communityId, canManage = false }: Com
     <FadeIn>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">{committee.name}</h3>
-          <span className="rounded-full border px-2 py-0.5 text-xs font-medium">{committee.state}</span>
+          <h3 className="font-medium">{committee.name}</h3>
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+            {committee.state}
+          </span>
         </div>
 
         {committee.roles.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium">Roles</h4>
-            <div className="mt-1 space-y-1">
+            <h4 className="text-sm font-medium text-muted-foreground">Roles</h4>
+            <div className="mt-1.5 space-y-1.5">
               {committee.roles.map((role) => (
-                <div key={role.id} className="flex items-center justify-between rounded border p-2 text-sm">
+                <div
+                  key={role.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2 text-sm"
+                >
                   <span>{role.name}</span>
                   <span className="text-xs text-muted-foreground">{role.activeAssignees} assigned</span>
                 </div>
