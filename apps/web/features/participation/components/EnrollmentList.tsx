@@ -26,7 +26,7 @@ export function EnrollmentList({ eventId, isOrganizer = false }: EnrollmentListP
   useEffect(() => {
     const controller = new AbortController();
     listEnrollments(eventId, { signal: controller.signal }).then((result) => {
-      if (result.ok) setEnrollments(result.data);
+      if (result.ok) setEnrollments(result.data.data);
       setLoading(false);
     });
     return () => controller.abort();

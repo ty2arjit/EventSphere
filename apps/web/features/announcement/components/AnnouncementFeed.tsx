@@ -29,10 +29,10 @@ export function AnnouncementFeed({ communityId, eventId, isOrganizer = false }: 
       ? listByCommunity(communityId, { signal: controller.signal })
       : eventId
         ? listByEvent(eventId, { signal: controller.signal })
-        : Promise.resolve({ ok: true as const, data: [] as AnnouncementResponse[] });
+        : Promise.resolve({ ok: true as const, data: { data: [] as AnnouncementResponse[] } });
 
     fetcher.then((result) => {
-      if (result.ok) setAnnouncements(result.data);
+      if (result.ok) setAnnouncements(result.data.data);
       setLoading(false);
     });
     return () => controller.abort();

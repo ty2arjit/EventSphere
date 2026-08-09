@@ -5,8 +5,8 @@ import type { TaskResponse, CreateTaskInput } from "../types";
 export function listTasks(
   eventId: string,
   options: { signal?: AbortSignal } = {},
-): Promise<ApiResult<TaskResponse[]>> {
-  return request<TaskResponse[]>(`/api/v1/tasks/event/${eventId}`, { signal: options.signal });
+): Promise<ApiResult<{ data: TaskResponse[] }>> {
+  return request<{ data: TaskResponse[] }>(`/api/v1/tasks/event/${eventId}`, { signal: options.signal });
 }
 
 export function getTask(

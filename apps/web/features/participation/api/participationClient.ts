@@ -61,8 +61,8 @@ export function enroll(
 export function listEnrollments(
   eventId: string,
   options: { signal?: AbortSignal } = {},
-): Promise<ApiResult<EnrollmentResponse[]>> {
-  return request<EnrollmentResponse[]>(`/api/v1/participation/enrollments/event/${eventId}`, {
+): Promise<ApiResult<{ data: EnrollmentResponse[] }>> {
+  return request<{ data: EnrollmentResponse[] }>(`/api/v1/participation/enrollments/event/${eventId}`, {
     signal: options.signal,
   });
 }

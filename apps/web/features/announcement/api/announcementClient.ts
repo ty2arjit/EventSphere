@@ -5,8 +5,8 @@ import type { AnnouncementResponse, CreateAnnouncementInput } from "../types";
 export function listByCommunity(
   communityId: string,
   options: { signal?: AbortSignal } = {},
-): Promise<ApiResult<AnnouncementResponse[]>> {
-  return request<AnnouncementResponse[]>(`/api/v1/announcements/community/${communityId}`, {
+): Promise<ApiResult<{ data: AnnouncementResponse[] }>> {
+  return request<{ data: AnnouncementResponse[] }>(`/api/v1/announcements/community/${communityId}`, {
     signal: options.signal,
   });
 }
@@ -14,8 +14,8 @@ export function listByCommunity(
 export function listByEvent(
   eventId: string,
   options: { signal?: AbortSignal } = {},
-): Promise<ApiResult<AnnouncementResponse[]>> {
-  return request<AnnouncementResponse[]>(`/api/v1/announcements/event/${eventId}`, {
+): Promise<ApiResult<{ data: AnnouncementResponse[] }>> {
+  return request<{ data: AnnouncementResponse[] }>(`/api/v1/announcements/event/${eventId}`, {
     signal: options.signal,
   });
 }

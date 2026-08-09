@@ -33,7 +33,7 @@ export function TaskBoard({ eventId, canManage = false }: TaskBoardProps) {
   useEffect(() => {
     const controller = new AbortController();
     listTasks(eventId, { signal: controller.signal }).then((result) => {
-      if (result.ok) setTasks(result.data);
+      if (result.ok) setTasks(result.data.data);
       setLoading(false);
     });
     return () => controller.abort();
