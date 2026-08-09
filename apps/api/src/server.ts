@@ -119,6 +119,7 @@ const app = createApp({
   },
   authorizationDependencies: {
     permissionPolicyRepository,
+    eventRepository,
     authorizeResourceActionService: authorizeService,
   },
   eventDependencies: {

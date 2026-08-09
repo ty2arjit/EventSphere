@@ -7,6 +7,7 @@ const DESCRIPTIONS: Record<string, string> = {
   [PERMISSIONS.PARTICIPATION_MANAGE]: 'Manage registration policy, enrollments, attendance, and certificates',
   [PERMISSIONS.TASK_MANAGE]: 'Create, assign, and transition operational tasks',
   [PERMISSIONS.ANNOUNCEMENT_MANAGE]: 'Create, publish, and manage announcements',
+  [PERMISSIONS.AUTHORIZATION_MANAGE]: 'Create and revoke permission grants within a community or event',
 };
 
 /**
