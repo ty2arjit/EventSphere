@@ -1,4 +1,5 @@
 export const PERMISSIONS = {
+  COMMUNITY_MANAGE: 'community:manage',
   EVENT_MANAGE: 'event:manage',
   COMMITTEE_MANAGE: 'committee:manage',
   PARTICIPATION_MANAGE: 'participation:manage',

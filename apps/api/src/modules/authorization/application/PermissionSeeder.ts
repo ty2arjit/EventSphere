@@ -2,6 +2,7 @@ import { PermissionPolicyRepository } from '../domain/PermissionPolicyRepository
 import { PERMISSIONS } from '../domain/permissionNames';
 
 const DESCRIPTIONS: Record<string, string> = {
+  [PERMISSIONS.COMMUNITY_MANAGE]: 'Update community profile/settings, manage positions, and send invitations',
   [PERMISSIONS.EVENT_MANAGE]: 'Create, update, and transition events and sessions within a community',
   [PERMISSIONS.COMMITTEE_MANAGE]: 'Manage event committees, roles, and assignments',
   [PERMISSIONS.PARTICIPATION_MANAGE]: 'Manage registration policy, enrollments, attendance, and certificates',

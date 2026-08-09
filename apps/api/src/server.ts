@@ -116,6 +116,7 @@ const app = createApp({
   communityDependencies: {
     communityRepository,
     eventPublisher,
+    authorizeResourceActionService: authorizeService,
   },
   authorizationDependencies: {
     permissionPolicyRepository,
