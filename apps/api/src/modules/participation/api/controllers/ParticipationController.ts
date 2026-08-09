@@ -91,7 +91,7 @@ export class ParticipationController {
     try {
       const enrollment = await this.enrollService.enroll(
         req.body.eventId,
-        (req as unknown as Record<string, unknown>).userId as string ?? req.body.userId,
+        req.user!.id,
         req.body.responses ?? [],
       );
       res.status(201).json(toEnrollmentResponse(enrollment));
