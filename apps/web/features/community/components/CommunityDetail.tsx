@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Users, Award, CalendarDays, Plus } from "lucide-react";
+import { Users, Award, CalendarDays, Plus, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/Section";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -11,7 +11,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
 import { EventList } from "@/features/events";
-import { useCanManage } from "@/features/authorization";
+import { useCanManage, GrantsManager } from "@/features/authorization";
 import type { CommunityResponse } from "../types";
 import {
   getCommunityBySlug,
@@ -151,6 +151,15 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
                 </li>
               ))}
             </ul>
+          </Section>
+        )}
+
+        {isOwner && (
+          <Section icon={ShieldCheck} title="Permissions">
+            <GrantsManager
+              communityId={community.id}
+              positions={community.positions.map((p) => ({ id: p.id, name: p.name }))}
+            />
           </Section>
         )}
 
