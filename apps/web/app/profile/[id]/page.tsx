@@ -26,8 +26,8 @@ export default async function ProfileDetailPage({
   const { id } = await params;
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl p-6">
+    <div className="mx-auto max-w-4xl">
       <ProfileDashboard profileId={id} />
-    </main>
+    </div>
   );
 }

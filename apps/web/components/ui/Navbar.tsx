@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
+import { BrandMark } from "./BrandMark";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
 import { logout } from "@/features/authentication/api/authClient";
 
@@ -27,21 +28,25 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex items-center justify-between h-14 px-4">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold text-primary">
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+        <div className="flex items-center gap-8">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 text-lg font-semibold font-heading text-primary transition-transform hover:scale-[1.02]"
+          >
+            <BrandMark className="size-8" />
             EventSphere
           </Link>
-          <nav className="hidden md:flex items-center gap-4">
+          <nav className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
+                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                   pathname === link.href
-                    ? "text-primary"
-                    : "text-muted-foreground"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 {link.label}
@@ -49,20 +54,20 @@ export function Navbar() {
             ))}
           </nav>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
           <ThemeToggle />
           {!isLoading && user && (
             <>
               <Link
                 href={`/profile/${user.id}`}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
               >
                 Profile
               </Link>
               <button
                 onClick={handleSignOut}
                 disabled={signingOut}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-50"
               >
                 {signingOut ? "Signing out…" : "Sign out"}
               </button>
@@ -71,7 +76,7 @@ export function Navbar() {
           {!isLoading && !user && (
             <Link
               href="/login"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              className="ml-1 rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground shadow-soft transition-opacity hover:opacity-90"
             >
               Sign in
             </Link>

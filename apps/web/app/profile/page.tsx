@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 
 export default function ProfilePage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
+    <div className="flex min-h-[70vh] items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Register Profile</CardTitle>
@@ -55,6 +55,6 @@ export default function ProfilePage() {
           </section>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
