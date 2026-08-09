@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Check, X } from "lucide-react";
 import { listEnrollments, approveEnrollment, rejectEnrollment } from "../api/participationClient";
 import type { EnrollmentResponse } from "../types";
-import { StaggerList } from "@/components/motion/StaggerList";
+import { StaggerList, StaggerItem } from "@/components/motion/StaggerList";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface EnrollmentListProps {
   eventId: string;
@@ -12,11 +14,11 @@ interface EnrollmentListProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  Approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  Pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  Rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  Waitlisted: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  Cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+  Approved: "bg-primary/15 text-primary",
+  Pending: "bg-accent/15 text-accent",
+  Rejected: "bg-destructive/15 text-destructive",
+  Waitlisted: "bg-secondary text-secondary-foreground",
+  Cancelled: "bg-muted text-muted-foreground",
 };
 
 export function EnrollmentList({ eventId, isOrganizer = false }: EnrollmentListProps) {
@@ -52,41 +54,46 @@ export function EnrollmentList({ eventId, isOrganizer = false }: EnrollmentListP
     }
   };
 
-  if (loading) return <p className="text-muted-foreground text-sm">Loading enrollments...</p>;
-  if (enrollments.length === 0) return <p className="text-muted-foreground text-sm">No enrollments yet.</p>;
+  if (loading) return <Spinner label="Loading enrollments…" />;
+  if (enrollments.length === 0) return <p className="text-sm text-muted-foreground">No enrollments yet.</p>;
 
   return (
     <div className="space-y-2">
-      <h3 className="font-semibold">Enrollments ({enrollments.length})</h3>
-      <StaggerList>
+      <h4 className="text-sm font-medium text-muted-foreground">
+        Enrollments ({enrollments.length})
+      </h4>
+      <StaggerList className="space-y-2">
         {enrollments.map((enrollment) => (
-          <div
-            key={enrollment.id}
-            className="flex items-center justify-between border rounded-md p-3"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-mono">{enrollment.userId.slice(0, 8)}...</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[enrollment.status] ?? ""}`}>
-                {enrollment.status}
-              </span>
-            </div>
-            {isOrganizer && enrollment.status === "Pending" && (
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleApprove(enrollment.id)}
-                  className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+          <StaggerItem key={enrollment.id}>
+            <div className="flex items-center justify-between rounded-lg border border-border bg-background/60 p-3">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm">{enrollment.userId.slice(0, 8)}...</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[enrollment.status] ?? ""}`}
                 >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleReject(enrollment.id)}
-                  className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-                >
-                  Reject
-                </button>
+                  {enrollment.status}
+                </span>
               </div>
-            )}
-          </div>
+              {isOrganizer && enrollment.status === "Pending" && (
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => handleApprove(enrollment.id)}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                  >
+                    <Check className="size-3.5" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReject(enrollment.id)}
+                    className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/20"
+                  >
+                    <X className="size-3.5" />
+                    Reject
+                  </button>
+                </div>
+              )}
+            </div>
+          </StaggerItem>
         ))}
       </StaggerList>
     </div>

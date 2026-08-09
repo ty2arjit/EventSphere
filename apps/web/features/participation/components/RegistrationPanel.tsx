@@ -10,6 +10,8 @@ import {
   enroll,
 } from "../api/participationClient";
 import type { RegistrationResponse } from "../types";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/Spinner";
 import { FadeIn } from "@/components/motion/FadeIn";
 
 interface RegistrationPanelProps {
@@ -61,61 +63,46 @@ export function RegistrationPanel({ eventId, isOrganizer = false, onEnrolled }: 
     }
   };
 
-  if (loading) return <p className="text-muted-foreground text-sm">Loading registration...</p>;
+  if (loading) return <Spinner label="Loading registration…" />;
 
   return (
     <FadeIn>
-      <div className="border rounded-lg p-4 space-y-3">
-        <h3 className="font-semibold text-lg">Registration</h3>
-
+      <div className="space-y-3">
         {!registration && isOrganizer && (
-          <button
-            onClick={handleCreate}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90"
-          >
-            Setup Registration
-          </button>
+          <Button onClick={handleCreate}>Setup Registration</Button>
         )}
 
         {registration && (
           <>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`inline-block w-2 h-2 rounded-full ${registration.isOpen ? "bg-green-500" : "bg-red-500"}`}
+                className={`inline-block size-2 rounded-full ${registration.isOpen ? "bg-primary" : "bg-destructive"}`}
               />
               <span className="text-sm">
                 {registration.isOpen ? "Open" : "Closed"} &middot;{" "}
                 {registration.approvalStrategy} approval
               </span>
               {registration.maxParticipants && (
-                <span className="text-muted-foreground text-xs">
+                <span className="text-xs text-muted-foreground">
                   (max {registration.maxParticipants})
                 </span>
               )}
             </div>
 
             {isOrganizer && (
-              <button
-                onClick={handleToggle}
-                className="px-3 py-1 border rounded-md text-sm hover:bg-muted"
-              >
+              <Button variant="outline" size="sm" onClick={handleToggle}>
                 {registration.isOpen ? "Close Registration" : "Open Registration"}
-              </button>
+              </Button>
             )}
 
             {!isOrganizer && registration.isOpen && (
-              <button
-                onClick={handleEnroll}
-                className="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
-              >
-                Register Now
-              </button>
+              <Button onClick={handleEnroll}>Register Now</Button>
             )}
           </>
         )}
 
         {!registration && !isOrganizer && (
-          <p className="text-muted-foreground text-sm">Registration not yet available.</p>
+          <p className="text-sm text-muted-foreground">Registration not yet available.</p>
         )}
       </div>
     </FadeIn>

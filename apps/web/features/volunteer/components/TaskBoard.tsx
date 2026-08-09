@@ -4,15 +4,16 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { listTasks, transitionTask } from "../api/volunteerClient";
 import type { TaskResponse } from "../types";
-import { StaggerList } from "@/components/motion/StaggerList";
+import { StaggerList, StaggerItem } from "@/components/motion/StaggerList";
+import { Spinner } from "@/components/ui/Spinner";
 
 const COLUMNS = ["Todo", "InProgress", "Blocked", "Completed", "Cancelled"] as const;
 
 const PRIORITY_COLORS: Record<string, string> = {
-  Critical: "border-l-red-500",
-  High: "border-l-orange-500",
-  Medium: "border-l-yellow-500",
-  Low: "border-l-blue-500",
+  Critical: "border-l-destructive",
+  High: "border-l-accent",
+  Medium: "border-l-primary/60",
+  Low: "border-l-muted-foreground/40",
 };
 
 const NEXT_STATUS: Record<string, string[]> = {
@@ -51,29 +52,27 @@ export function TaskBoard({ eventId, canManage = false }: TaskBoardProps) {
     }
   };
 
-  if (loading) return <p className="text-muted-foreground text-sm">Loading tasks...</p>;
+  if (loading) return <Spinner label="Loading tasks…" />;
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-semibold text-lg">Task Board</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {COLUMNS.map((col) => {
-          const colTasks = tasks.filter((t) => t.status === col);
-          return (
-            <div key={col} className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                {col}
-                <span className="bg-muted rounded-full px-2 py-0.5 text-xs">{colTasks.length}</span>
-              </h4>
-              <StaggerList>
-                {colTasks.map((task) => (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
+      {COLUMNS.map((col) => {
+        const colTasks = tasks.filter((t) => t.status === col);
+        return (
+          <div key={col} className="space-y-2.5">
+            <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              {col}
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{colTasks.length}</span>
+            </h4>
+            <StaggerList className="space-y-2">
+              {colTasks.map((task) => (
+                <StaggerItem key={task.id}>
                   <div
-                    key={task.id}
-                    className={`border-l-4 ${PRIORITY_COLORS[task.priority] ?? ""} border rounded-md p-3 space-y-2`}
+                    className={`space-y-2 rounded-lg border border-l-4 border-border bg-background/60 p-3 shadow-soft ${PRIORITY_COLORS[task.priority] ?? ""}`}
                   >
-                    <p className="font-medium text-sm">{task.title}</p>
+                    <p className="text-sm font-medium">{task.title}</p>
                     {task.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
                     )}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <span>{task.priority}</span>
@@ -87,12 +86,12 @@ export function TaskBoard({ eventId, canManage = false }: TaskBoardProps) {
                       </div>
                     )}
                     {canManage && NEXT_STATUS[task.status] && (
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex flex-wrap gap-1">
                         {NEXT_STATUS[task.status].map((target) => (
                           <button
                             key={target}
                             onClick={() => handleTransition(task.id, target)}
-                            className="px-2 py-0.5 text-xs border rounded hover:bg-muted"
+                            className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-muted"
                           >
                             &rarr; {target}
                           </button>
@@ -100,12 +99,12 @@ export function TaskBoard({ eventId, canManage = false }: TaskBoardProps) {
                       </div>
                     )}
                   </div>
-                ))}
-              </StaggerList>
-            </div>
-          );
-        })}
-      </div>
+                </StaggerItem>
+              ))}
+            </StaggerList>
+          </div>
+        );
+      })}
     </div>
   );
 }

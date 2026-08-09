@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles, Send } from "lucide-react";
 import { getAIInsight } from "../api/analyticsClient";
 import type { AIInsightResponse } from "../types";
 import { FadeIn } from "@/components/motion/FadeIn";
+import { Button } from "@/components/ui/button";
 
 interface AIAssistantProps {
   eventId: string;
@@ -54,21 +56,14 @@ export function AIAssistant({ eventId }: AIAssistantProps) {
   };
 
   return (
-    <div className="border rounded-lg p-4 space-y-4">
-      <h3 className="font-semibold text-lg flex items-center gap-2">
-        <span className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs">
-          AI
-        </span>
-        AI Assistant
-      </h3>
-
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {quickActions.map((action) => (
           <button
             key={action.type}
             onClick={() => handleQuickAction(action.type, action.label)}
             disabled={loading}
-            className="px-3 py-1 text-xs border rounded-full hover:bg-muted disabled:opacity-50"
+            className="rounded-full border border-border px-3 py-1 text-xs font-medium transition-colors hover:bg-secondary disabled:opacity-50"
           >
             {action.label}
           </button>
@@ -81,29 +76,36 @@ export function AIAssistant({ eventId }: AIAssistantProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAsk()}
-          placeholder="Ask about your event..."
-          className="flex-1 px-3 py-2 border rounded-md"
+          placeholder="Ask about your event…"
+          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
-        <button
-          onClick={handleAsk}
-          disabled={loading || !query.trim()}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? "Thinking..." : "Ask"}
-        </button>
+        <Button onClick={handleAsk} disabled={loading || !query.trim()}>
+          {loading ? (
+            "Thinking…"
+          ) : (
+            <>
+              <Send className="size-3.5" />
+              Ask
+            </>
+          )}
+        </Button>
       </div>
 
       {response && (
         <FadeIn>
-          <div className="space-y-3 border-t pt-3">
-            <p className="text-sm whitespace-pre-wrap">{response.content}</p>
+          <div className="space-y-3 rounded-xl border border-border bg-background/60 p-4">
+            <div className="flex items-center gap-2 text-xs font-medium text-primary">
+              <Sparkles className="size-3.5" />
+              AI Insight
+            </div>
+            <p className="whitespace-pre-wrap text-sm">{response.content}</p>
             {response.suggestions.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">Suggestions:</p>
                 <ul className="space-y-1">
                   {response.suggestions.map((s, i) => (
-                    <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-primary mt-0.5">&bull;</span>
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="mt-0.5 text-primary">&bull;</span>
                       {s}
                     </li>
                   ))}
