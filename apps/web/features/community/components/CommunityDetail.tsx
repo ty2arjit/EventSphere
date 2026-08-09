@@ -18,6 +18,7 @@ import {
   joinCommunity,
   leaveCommunity,
 } from "../api/communityClient";
+import { InviteMemberForm } from "./InviteMemberForm";
 
 interface CommunityDetailProps {
   slug: string;
@@ -164,10 +165,13 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
         )}
 
         <Section icon={Users} title="Members">
-          <p className="text-sm text-muted-foreground">
-            {community.members.length} active member
-            {community.members.length !== 1 ? "s" : ""}
-          </p>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {community.members.length} active member
+              {community.members.length !== 1 ? "s" : ""}
+            </p>
+            {isOwner && <InviteMemberForm communityId={community.id} />}
+          </div>
         </Section>
 
         <Section

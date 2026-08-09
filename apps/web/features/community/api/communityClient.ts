@@ -94,8 +94,8 @@ export function createInvitation(
   communityId: string,
   input: CreateInvitationInput,
   options: { signal?: AbortSignal } = {},
-): Promise<ApiResult<CommunityResponse>> {
-  return request<CommunityResponse>(
+): Promise<ApiResult<{ invitationId: string }>> {
+  return request<{ invitationId: string }>(
     `/api/v1/communities/${communityId}/invitations`,
     { method: "POST", body: input, signal: options.signal },
   );
@@ -105,8 +105,8 @@ export function acceptInvitation(
   communityId: string,
   invitationId: string,
   options: { signal?: AbortSignal } = {},
-): Promise<ApiResult<CommunityResponse>> {
-  return request<CommunityResponse>(
+): Promise<ApiResult<{ ok: boolean }>> {
+  return request<{ ok: boolean }>(
     `/api/v1/communities/${communityId}/invitations/${invitationId}/accept`,
     { method: "POST", signal: options.signal },
   );
@@ -125,11 +125,11 @@ export function updateSettings(
 
 export function transferOwnership(
   communityId: string,
-  newOwnerUserId: string,
+  newOwnerId: string,
   options: { signal?: AbortSignal } = {},
-): Promise<ApiResult<CommunityResponse>> {
-  return request<CommunityResponse>(
+): Promise<ApiResult<{ ok: boolean }>> {
+  return request<{ ok: boolean }>(
     `/api/v1/communities/${communityId}/transfer-ownership`,
-    { method: "POST", body: { newOwnerUserId }, signal: options.signal },
+    { method: "POST", body: { newOwnerId }, signal: options.signal },
   );
 }
