@@ -121,7 +121,7 @@ export class ParticipationController {
 
   cancelEnrollment = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await this.enrollService.cancel(req.params.id as string);
+      await this.enrollService.cancel(req.params.id as string, req.user!.id);
       res.status(204).end();
     } catch (err) { next(err); }
   };

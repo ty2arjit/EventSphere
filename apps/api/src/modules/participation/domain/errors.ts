@@ -55,3 +55,11 @@ export class RegistrationClosedError extends DomainError {
     super(`Registration is closed for event: ${eventId}`);
   }
 }
+
+export class EnrollmentAccessDeniedError extends DomainError {
+  readonly kind: DomainErrorKind = "FORBIDDEN";
+  readonly code = "ENROLLMENT_ACCESS_DENIED";
+  constructor() {
+    super("You can only cancel your own enrollment");
+  }
+}

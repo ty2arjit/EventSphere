@@ -7,6 +7,7 @@ import {
   RegistrationClosedError,
   DuplicateEnrollmentError,
   EnrollmentNotFoundError,
+  EnrollmentAccessDeniedError,
 } from "../domain/errors";
 import {
   enrollmentCreated,
@@ -66,8 +67,16 @@ export class EnrollService {
     await this.publisher.publish(enrollmentStatusChanged(enrollmentId, fromStatus, enrollment.status));
   }
 
-  async cancel(enrollmentId: string): Promise<void> {
+  /**
+   * Self-service — deliberately not gated by requireResourcePermission
+   * (see participation.routes.ts), since cancelling is the enrollee's own
+   * action, not an organizer one. That makes ownership the only thing
+   * standing between "cancel my own enrollment" and "cancel anyone's
+   * enrollment by guessing its id" — enforce it here.
+   */
+  async cancel(enrollmentId: string, callerId: string): Promise<void> {
     const enrollment = await this.loadEnrollment(enrollmentId);
+    if (enrollment.userId !== callerId) throw new EnrollmentAccessDeniedError();
     const fromStatus = enrollment.status;
     enrollment.cancel();
     await this.enrollmentRepo.update(enrollment);
