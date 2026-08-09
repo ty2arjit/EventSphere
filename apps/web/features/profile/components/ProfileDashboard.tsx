@@ -61,6 +61,7 @@ export function ProfileDashboard({ profileId }: { profileId: string }) {
   }
 
   const { profile } = state;
+  const isOwner = currentUser?.id === profile.id;
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,320px)_1fr]">
@@ -71,34 +72,36 @@ export function ProfileDashboard({ profileId }: { profileId: string }) {
         )}
       </div>
 
-      <div className="space-y-6">
-        <section className="space-y-3 rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-card-foreground">Avatar</h2>
-          <AvatarField
-            profileId={profile.id}
-            currentAvatarUrl={profile.profile.avatarUrl}
-            onSuccess={(updated) => setState({ status: "loaded", profile: updated })}
-          />
-        </section>
+      {isOwner && (
+        <div className="space-y-6">
+          <section className="space-y-3 rounded-xl border border-border bg-card p-5">
+            <h2 className="text-sm font-semibold text-card-foreground">Avatar</h2>
+            <AvatarField
+              profileId={profile.id}
+              currentAvatarUrl={profile.profile.avatarUrl}
+              onSuccess={(updated) => setState({ status: "loaded", profile: updated })}
+            />
+          </section>
 
-        <section className="space-y-3 rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-card-foreground">Edit profile</h2>
-          <ProfileEditForm
-            profileId={profile.id}
-            initialValues={profile.profile}
-            onSuccess={(updated) => setState({ status: "loaded", profile: updated })}
-          />
-        </section>
+          <section className="space-y-3 rounded-xl border border-border bg-card p-5">
+            <h2 className="text-sm font-semibold text-card-foreground">Edit profile</h2>
+            <ProfileEditForm
+              profileId={profile.id}
+              initialValues={profile.profile}
+              onSuccess={(updated) => setState({ status: "loaded", profile: updated })}
+            />
+          </section>
 
-        <section className="space-y-3 rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-card-foreground">Preferences</h2>
-          <PreferencesForm
-            profileId={profile.id}
-            initialValues={profile.preferences}
-            onSuccess={(updated) => setState({ status: "loaded", profile: updated })}
-          />
-        </section>
-      </div>
+          <section className="space-y-3 rounded-xl border border-border bg-card p-5">
+            <h2 className="text-sm font-semibold text-card-foreground">Preferences</h2>
+            <PreferencesForm
+              profileId={profile.id}
+              initialValues={profile.preferences}
+              onSuccess={(updated) => setState({ status: "loaded", profile: updated })}
+            />
+          </section>
+        </div>
+      )}
     </div>
   );
 }

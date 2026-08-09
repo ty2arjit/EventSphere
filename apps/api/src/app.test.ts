@@ -4,6 +4,9 @@ import { createApp } from './app';
 import { InMemoryProfileRepository } from './modules/profile/test-support/InMemoryProfileRepository';
 import { RecordingEventPublisher } from './modules/profile/test-support/RecordingEventPublisher';
 import { User } from './modules/profile/domain/User';
+import { FakeJwtService } from './modules/authentication/test-support/fakes';
+
+const jwtService = new FakeJwtService();
 
 function buildTestApp(checkDatabase?: () => Promise<void>) {
   return createApp({
@@ -11,7 +14,18 @@ function buildTestApp(checkDatabase?: () => Promise<void>) {
     eventPublisher: new RecordingEventPublisher(),
     corsOrigins: ['http://localhost:3000'],
     checkDatabase,
+    jwtService,
   });
+}
+
+// Profile mutation routes now require the caller to be authenticated as the
+// profile they're acting on. FakeJwtService.verifyAccessToken just parses a
+// deterministic string — no real session/credential needed — so tests can
+// authenticate "as" a walking-skeleton-registered profile (which has no
+// UserCredential at all) by building this cookie directly.
+async function selfAuthCookie(id: string): Promise<string> {
+  const token = await jwtService.issueAccessToken({ sub: id, sessionId: 'test-session', emailVerified: false }, 900);
+  return `es_access=${token}`;
 }
 
 describe('GET /health (liveness)', () => {
@@ -221,6 +235,7 @@ describe('PATCH /api/v1/profile/:id', () => {
 
     const res = await request(app)
       .patch(`/api/v1/profile/${id}`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id))
       .send({ bio: 'Hello world', headline: 'Engineer' });
 
     expect(res.status).toBe(200);
@@ -233,16 +248,40 @@ describe('PATCH /api/v1/profile/:id', () => {
 
     const res = await request(app)
       .patch(`/api/v1/profile/${id}`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id))
       .send({ graduationYear: 1900 });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('VALIDATION_ERROR');
   });
 
+  it('returns 403 for someone else\'s profile', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-owned@example.com');
+
+    const res = await request(app)
+      .patch(`/api/v1/profile/${id}`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie('someone-else'))
+      .send({ bio: 'Hijacked' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 401 for an unauthenticated request', async () => {
+    const app = buildTestApp();
+    const id = await registerProfile(app, 'patch-unauth@example.com');
+
+    const res = await request(app).patch(`/api/v1/profile/${id}`).set('X-Requested-With', 'XMLHttpRequest').send({ bio: 'Hi' });
+    expect(res.status).toBe(401);
+  });
+
   it('returns 404 for an unknown id', async () => {
     const app = buildTestApp();
 
-    const res = await request(app).patch('/api/v1/profile/does-not-exist').set('X-Requested-With', 'XMLHttpRequest').send({ bio: 'Hi' });
+    const res = await request(app)
+      .patch('/api/v1/profile/does-not-exist').set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie('does-not-exist'))
+      .send({ bio: 'Hi' });
     expect(res.status).toBe(404);
   });
 });
@@ -254,6 +293,7 @@ describe('PATCH /api/v1/profile/:id/avatar', () => {
 
     const res = await request(app)
       .patch(`/api/v1/profile/${id}/avatar`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id))
       .send({ avatarUrl: 'https://example.com/a.png' });
 
     expect(res.status).toBe(200);
@@ -266,6 +306,7 @@ describe('PATCH /api/v1/profile/:id/avatar', () => {
 
     const res = await request(app)
       .patch(`/api/v1/profile/${id}/avatar`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id))
       .send({ avatarUrl: 'not-a-url' });
 
     expect(res.status).toBe(400);
@@ -279,6 +320,7 @@ describe('PATCH /api/v1/profile/:id/preferences', () => {
 
     const res = await request(app)
       .patch(`/api/v1/profile/${id}/preferences`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id))
       .send({ theme: 'dark', notifyInApp: false });
 
     expect(res.status).toBe(200);
@@ -291,6 +333,7 @@ describe('PATCH /api/v1/profile/:id/preferences', () => {
 
     const res = await request(app)
       .patch(`/api/v1/profile/${id}/preferences`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id))
       .send({ theme: 'neon' });
 
     expect(res.status).toBe(400);
@@ -302,7 +345,9 @@ describe('POST /api/v1/profile/:id/verify', () => {
     const app = buildTestApp();
     const id = await registerProfile(app, 'verify@example.com');
 
-    const res = await request(app).post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest');
+    const res = await request(app)
+      .post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id));
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('verified');
@@ -312,9 +357,12 @@ describe('POST /api/v1/profile/:id/verify', () => {
   it('returns 409 when already verified', async () => {
     const app = buildTestApp();
     const id = await registerProfile(app, 'verify-twice@example.com');
+    const cookie = await selfAuthCookie(id);
 
-    await request(app).post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest');
-    const res = await request(app).post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest');
+    await request(app).post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest').set('Cookie', cookie);
+    const res = await request(app)
+      .post(`/api/v1/profile/${id}/verify`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', cookie);
 
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('ALREADY_VERIFIED');
@@ -327,7 +375,9 @@ describe('POST /api/v1/profile/:id/deactivate', () => {
     const id = await registerProfile(app, 'deactivate-not-active@example.com');
 
     // freshly registered profiles start as 'registered', not 'active'
-    const res = await request(app).post(`/api/v1/profile/${id}/deactivate`).set('X-Requested-With', 'XMLHttpRequest');
+    const res = await request(app)
+      .post(`/api/v1/profile/${id}/deactivate`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(id));
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('INVALID_LIFECYCLE_TRANSITION');
@@ -347,9 +397,12 @@ describe('POST /api/v1/profile/:id/deactivate', () => {
       profileRepository: repository,
       eventPublisher: new RecordingEventPublisher(),
       corsOrigins: ['http://localhost:3000'],
+      jwtService,
     });
 
-    const res = await request(app).post(`/api/v1/profile/${user.id}/deactivate`).set('X-Requested-With', 'XMLHttpRequest');
+    const res = await request(app)
+      .post(`/api/v1/profile/${user.id}/deactivate`).set('X-Requested-With', 'XMLHttpRequest')
+      .set('Cookie', await selfAuthCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('inactive');
