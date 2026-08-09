@@ -10,6 +10,7 @@ export {
   logout,
   getMe,
   refresh,
+  confirmEmailVerificationOtp,
 } from "./api/authClient";
 export type {
   AuthenticatedUser,

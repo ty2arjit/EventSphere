@@ -6,5 +6,6 @@
  */
 export interface Mailer {
   sendVerificationEmail(to: string, verificationLink: string): Promise<void>;
+  sendVerificationOtp(to: string, code: string): Promise<void>;
   sendPasswordResetEmail(to: string, resetLink: string): Promise<void>;
 }

@@ -3,6 +3,7 @@ import { UserCredentialRepository } from '../../domain/UserCredentialRepository'
 import { PasswordHasher } from '../../domain/services/PasswordHasher';
 import { TokenHasher } from '../../domain/services/TokenHasher';
 import { RandomTokenGenerator } from '../../domain/services/RandomTokenGenerator';
+import { OtpGenerator } from '../../domain/services/OtpGenerator';
 import { JwtService } from '../../infrastructure/JoseJwtService';
 import { Mailer } from '../../infrastructure/Mailer';
 import { EventPublisher } from '../../../../shared/events/EventPublisher';
@@ -15,6 +16,7 @@ import { LogoutService } from '../../application/LogoutService';
 import { LogoutEverywhereService } from '../../application/LogoutEverywhereService';
 import { RequestEmailVerificationService } from '../../application/RequestEmailVerificationService';
 import { ConfirmEmailVerificationService } from '../../application/ConfirmEmailVerificationService';
+import { ConfirmEmailVerificationOtpService } from '../../application/ConfirmEmailVerificationOtpService';
 import { RequestPasswordResetService } from '../../application/RequestPasswordResetService';
 import { CompletePasswordResetService } from '../../application/CompletePasswordResetService';
 import { ChangePasswordService } from '../../application/ChangePasswordService';
@@ -26,6 +28,7 @@ import { validateLogin } from '../validators/login.validator';
 import { validateRequestPasswordReset } from '../validators/requestPasswordReset.validator';
 import { validateCompletePasswordReset } from '../validators/completePasswordReset.validator';
 import { validateConfirmEmailVerification } from '../validators/confirmEmailVerification.validator';
+import { validateConfirmEmailVerificationOtp } from '../validators/confirmEmailVerificationOtp.validator';
 import { validateChangePassword } from '../validators/changePassword.validator';
 
 export interface AuthRouterDependencies {
@@ -33,6 +36,7 @@ export interface AuthRouterDependencies {
   passwordHasher: PasswordHasher;
   tokenHasher: TokenHasher;
   tokenGenerator: RandomTokenGenerator;
+  otpGenerator: OtpGenerator;
   jwtService: JwtService;
   mailer: Mailer;
   eventPublisher: EventPublisher;
@@ -48,6 +52,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
       deps.passwordHasher,
       deps.tokenHasher,
       deps.tokenGenerator,
+      deps.otpGenerator,
       deps.eventPublisher,
       deps.mailer,
       deps.authConfig,
@@ -75,10 +80,12 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
       deps.credentialRepository,
       deps.tokenHasher,
       deps.tokenGenerator,
+      deps.otpGenerator,
       deps.mailer,
       deps.authConfig,
     ),
     new ConfirmEmailVerificationService(deps.credentialRepository, deps.tokenHasher, deps.eventPublisher),
+    new ConfirmEmailVerificationOtpService(deps.credentialRepository, deps.tokenHasher, deps.eventPublisher),
     new RequestPasswordResetService(
       deps.credentialRepository,
       deps.tokenHasher,
@@ -104,6 +111,12 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
   router.post('/login', authRateLimit, validateLogin, controller.login);
   router.post('/refresh', controller.refresh);
   router.post('/email/verify', verificationRateLimit, validateConfirmEmailVerification, controller.confirmEmailVerification);
+  router.post(
+    '/email/verify/otp',
+    verificationRateLimit,
+    validateConfirmEmailVerificationOtp,
+    controller.confirmEmailVerificationOtp,
+  );
   router.post('/password/request-reset', verificationRateLimit, validateRequestPasswordReset, controller.requestPasswordReset);
   router.post('/password/reset', verificationRateLimit, validateCompletePasswordReset, controller.completePasswordReset);
 

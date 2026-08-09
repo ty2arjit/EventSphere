@@ -9,6 +9,7 @@ import { RegisterCredentialService } from './RegisterCredentialService';
 import { AuthenticateWithPasswordService } from './AuthenticateWithPasswordService';
 import { RequestEmailVerificationService } from './RequestEmailVerificationService';
 import { ConfirmEmailVerificationService } from './ConfirmEmailVerificationService';
+import { ConfirmEmailVerificationOtpService } from './ConfirmEmailVerificationOtpService';
 import { RequestPasswordResetService } from './RequestPasswordResetService';
 import { CompletePasswordResetService } from './CompletePasswordResetService';
 import { ChangePasswordService } from './ChangePasswordService';
@@ -23,6 +24,7 @@ import {
   InMemoryProfileGateway,
   RecordingMailer,
   SequentialTokenGenerator,
+  SequentialOtpGenerator,
 } from '../test-support/fakes';
 import { DEFAULT_AUTH_CONFIG } from './AuthConfig';
 import {
@@ -41,6 +43,7 @@ async function scenario() {
   const passwordHasher = new FakePasswordHasher();
   const tokenHasher = new FakeTokenHasher();
   const tokenGenerator = new SequentialTokenGenerator();
+  const otpGenerator = new SequentialOtpGenerator();
   const jwtService = new FakeJwtService();
 
   const register = new RegisterCredentialService(
@@ -49,6 +52,7 @@ async function scenario() {
     passwordHasher,
     tokenHasher,
     tokenGenerator,
+    otpGenerator,
     eventPublisher,
     mailer,
     DEFAULT_AUTH_CONFIG,
@@ -66,10 +70,16 @@ async function scenario() {
     credentialRepository,
     tokenHasher,
     tokenGenerator,
+    otpGenerator,
     mailer,
     DEFAULT_AUTH_CONFIG,
   );
   const confirmVerify = new ConfirmEmailVerificationService(
+    credentialRepository,
+    tokenHasher,
+    eventPublisher,
+  );
+  const confirmVerifyOtp = new ConfirmEmailVerificationOtpService(
     credentialRepository,
     tokenHasher,
     eventPublisher,
@@ -108,6 +118,7 @@ async function scenario() {
     auth,
     requestVerify,
     confirmVerify,
+    confirmVerifyOtp,
     requestReset,
     completeReset,
     changePassword,
@@ -140,22 +151,69 @@ describe('ConfirmEmailVerificationService', () => {
 
   it('rejects a token used twice', async () => {
     const { confirmVerify, mailer } = await scenario();
-    const rawToken = mailer.sent[0]?.link.split('/').pop() ?? '';
+    const rawToken = (mailer.sent[0]?.link ?? '').split('/').pop() ?? '';
     await confirmVerify.execute(rawToken);
     await expect(confirmVerify.execute(rawToken)).rejects.toThrow();
   });
 });
 
+describe('ConfirmEmailVerificationOtpService', () => {
+  it('verifies the credential and publishes EmailVerified', async () => {
+    const { confirmVerifyOtp, mailer, credentialRepository, eventPublisher } = await scenario();
+    const code = mailer.sent[1]?.code ?? '';
+    eventPublisher.published.length = 0;
+
+    const result = await confirmVerifyOtp.execute('jane@example.com', code);
+
+    expect(result.userCredentialId).toBeTruthy();
+    const cred = await credentialRepository.findByEmail('jane@example.com');
+    expect(cred?.emailVerifiedAt).not.toBeNull();
+    expect(eventPublisher.published.map((e) => e.eventType)).toContain(EMAIL_VERIFIED);
+  });
+
+  it('rejects an unknown email without revealing whether the address exists', async () => {
+    const { confirmVerifyOtp } = await scenario();
+    await expect(confirmVerifyOtp.execute('nobody@example.com', '000001')).rejects.toThrow(
+      VerificationTokenNotFoundError,
+    );
+  });
+
+  it('rejects a wrong code for a known email', async () => {
+    const { confirmVerifyOtp } = await scenario();
+    await expect(confirmVerifyOtp.execute('jane@example.com', '999999')).rejects.toThrow(
+      VerificationTokenNotFoundError,
+    );
+  });
+
+  it('rejects a code used twice', async () => {
+    const { confirmVerifyOtp, mailer } = await scenario();
+    const code = mailer.sent[1]?.code ?? '';
+    await confirmVerifyOtp.execute('jane@example.com', code);
+    await expect(confirmVerifyOtp.execute('jane@example.com', code)).rejects.toThrow();
+  });
+
+  it('using the OTP consumes only that token — the link is still independently usable', async () => {
+    const { confirmVerifyOtp, mailer, credentialRepository } = await scenario();
+    const code = mailer.sent[1]?.code ?? '';
+    await confirmVerifyOtp.execute('jane@example.com', code);
+
+    const cred = await credentialRepository.findByEmail('jane@example.com');
+    const linkToken = cred?.tokens.find((t) => t.tokenHash === `hashed:token-1`);
+    expect(linkToken?.consumedAt).toBeNull();
+  });
+});
+
 describe('RequestEmailVerificationService', () => {
-  it('issues another token if the credential is unverified', async () => {
+  it('issues another link and OTP if the credential is unverified', async () => {
     const { requestVerify, mailer, credentialRepository } = await scenario();
     const cred = await credentialRepository.findByEmail('jane@example.com');
     mailer.sent.length = 0;
 
     await requestVerify.execute(cred!.id);
 
-    expect(mailer.sent).toHaveLength(1);
+    expect(mailer.sent).toHaveLength(2);
     expect(mailer.sent[0]?.kind).toBe('verify');
+    expect(mailer.sent[1]?.kind).toBe('otp');
   });
 
   it('does nothing for an unknown credential (no exception, no email)', async () => {
@@ -167,7 +225,7 @@ describe('RequestEmailVerificationService', () => {
 
   it('does nothing for an already-verified credential (idempotent)', async () => {
     const { requestVerify, confirmVerify, mailer, credentialRepository } = await scenario();
-    const rawToken = mailer.sent[0]?.link.split('/').pop() ?? '';
+    const rawToken = (mailer.sent[0]?.link ?? '').split('/').pop() ?? '';
     await confirmVerify.execute(rawToken);
     mailer.sent.length = 0;
 
@@ -216,7 +274,7 @@ describe('CompletePasswordResetService', () => {
     await auth.execute({ email: 'jane@example.com', password: 'correcthorse1battery' });
     mailer.sent.length = 0;
     await requestReset.execute('jane@example.com');
-    const rawToken = mailer.sent[0]?.link.split('/').pop() ?? '';
+    const rawToken = (mailer.sent[0]?.link ?? '').split('/').pop() ?? '';
     eventPublisher.published.length = 0;
 
     await completeReset.execute({ rawToken, newPassword: 'brandnewpassword1' });
@@ -239,7 +297,7 @@ describe('CompletePasswordResetService', () => {
     const { auth, requestReset, completeReset, mailer } = await scenario();
     mailer.sent.length = 0;
     await requestReset.execute('jane@example.com');
-    const rawToken = mailer.sent[0]?.link.split('/').pop() ?? '';
+    const rawToken = (mailer.sent[0]?.link ?? '').split('/').pop() ?? '';
     await completeReset.execute({ rawToken, newPassword: 'brandnewpassword1' });
 
     // Old password no longer works

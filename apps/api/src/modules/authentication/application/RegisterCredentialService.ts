@@ -5,6 +5,7 @@ import { PlaintextPassword } from '../domain/valueObjects/PlaintextPassword';
 import { PasswordHasher } from '../domain/services/PasswordHasher';
 import { TokenHasher } from '../domain/services/TokenHasher';
 import { RandomTokenGenerator } from '../domain/services/RandomTokenGenerator';
+import { OtpGenerator } from '../domain/services/OtpGenerator';
 import { EventPublisher } from '../../../shared/events/EventPublisher';
 import { Mailer } from '../infrastructure/Mailer';
 import { AuthConfig } from './AuthConfig';
@@ -32,6 +33,7 @@ export class RegisterCredentialService {
     private readonly passwordHasher: PasswordHasher,
     private readonly tokenHasher: TokenHasher,
     private readonly tokenGenerator: RandomTokenGenerator,
+    private readonly otpGenerator: OtpGenerator,
     private readonly eventPublisher: EventPublisher,
     private readonly mailer: Mailer,
     private readonly config: AuthConfig,
@@ -70,12 +72,19 @@ export class RegisterCredentialService {
     const hashedPassword = await this.passwordHasher.hash(password);
     const credential = UserCredential.register(userId, email, hashedPassword);
 
-    // Issue verification token now — raw token goes in the email URL,
-    // its hash goes on the aggregate.
+    // Issue two independent verification artifacts for the same purpose —
+    // a link (raw token embedded in a URL) and a 6-digit OTP — so the user
+    // can use whichever is more convenient. Consuming either satisfies
+    // verification; UserCredential.verifyEmail() guards against a second
+    // call, so a stale second artifact just 409s harmlessly if used later.
     const rawToken = this.tokenGenerator.generate();
     const tokenHash = this.tokenHasher.hash(rawToken);
     const expiresAt = new Date(Date.now() + this.config.emailVerificationTtlSeconds * 1000);
     credential.issueVerificationToken('email_verification', tokenHash, expiresAt);
+
+    const otp = this.otpGenerator.generate();
+    const otpHash = this.tokenHasher.hash(otp);
+    credential.issueVerificationToken('email_verification', otpHash, expiresAt);
 
     await this.credentialRepository.save(credential);
     await this.credentialRepository.updateTokens(credential);
@@ -88,5 +97,6 @@ export class RegisterCredentialService {
       email.value,
       `${this.config.webBaseUrl}/email/verify/${rawToken}`,
     );
+    await this.mailer.sendVerificationOtp(email.value, otp);
   }
 }

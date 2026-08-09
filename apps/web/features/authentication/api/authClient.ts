@@ -89,6 +89,17 @@ export function confirmEmailVerification(
   });
 }
 
+export function confirmEmailVerificationOtp(
+  input: { email: string; code: string },
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResult<AcknowledgementResponse>> {
+  return request<AcknowledgementResponse>("/api/v1/auth/email/verify/otp", {
+    method: "POST",
+    body: input,
+    signal: options.signal,
+  });
+}
+
 export function requestPasswordReset(
   input: PasswordResetRequestInput,
   options: { signal?: AbortSignal } = {},

@@ -3,6 +3,7 @@ import { PlaintextPassword } from '../domain/valueObjects/PlaintextPassword';
 import { PasswordHasher } from '../domain/services/PasswordHasher';
 import { TokenHasher } from '../domain/services/TokenHasher';
 import { RandomTokenGenerator } from '../domain/services/RandomTokenGenerator';
+import { OtpGenerator } from '../domain/services/OtpGenerator';
 import { Mailer } from '../infrastructure/Mailer';
 import { JwtService, AccessTokenClaims } from '../infrastructure/JoseJwtService';
 import { ProfileGateway } from '../application/ProfileGateway';
@@ -42,15 +43,32 @@ export class SequentialTokenGenerator implements RandomTokenGenerator {
 }
 
 export class RecordingMailer implements Mailer {
-  readonly sent: Array<
-    { kind: 'verify'; to: string; link: string } | { kind: 'reset'; to: string; link: string }
-  > = [];
+  // Flat shape (rather than a discriminated union) so existing tests can
+  // keep accessing `.link` on any entry without a `kind` narrowing check
+  // first — irrelevant fields are just undefined for a given kind.
+  readonly sent: Array<{ kind: 'verify' | 'otp' | 'reset'; to: string; link?: string; code?: string }> =
+    [];
 
   async sendVerificationEmail(to: string, link: string): Promise<void> {
     this.sent.push({ kind: 'verify', to, link });
   }
+  async sendVerificationOtp(to: string, code: string): Promise<void> {
+    this.sent.push({ kind: 'otp', to, code });
+  }
   async sendPasswordResetEmail(to: string, link: string): Promise<void> {
     this.sent.push({ kind: 'reset', to, link });
+  }
+}
+
+/**
+ * Returns a fixed 6-digit code so tests can assert on it directly rather
+ * than reading it back out of RecordingMailer.
+ */
+export class SequentialOtpGenerator implements OtpGenerator {
+  private counter = 0;
+  generate(): string {
+    this.counter += 1;
+    return this.counter.toString().padStart(6, '0');
   }
 }
 

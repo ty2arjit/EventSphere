@@ -6,6 +6,7 @@ import { LogoutService } from '../../application/LogoutService';
 import { LogoutEverywhereService } from '../../application/LogoutEverywhereService';
 import { RequestEmailVerificationService } from '../../application/RequestEmailVerificationService';
 import { ConfirmEmailVerificationService } from '../../application/ConfirmEmailVerificationService';
+import { ConfirmEmailVerificationOtpService } from '../../application/ConfirmEmailVerificationOtpService';
 import { RequestPasswordResetService } from '../../application/RequestPasswordResetService';
 import { CompletePasswordResetService } from '../../application/CompletePasswordResetService';
 import { ChangePasswordService } from '../../application/ChangePasswordService';
@@ -67,6 +68,7 @@ export class AuthController {
     private readonly logoutEverywhereService: LogoutEverywhereService,
     private readonly requestEmailVerificationService: RequestEmailVerificationService,
     private readonly confirmEmailVerificationService: ConfirmEmailVerificationService,
+    private readonly confirmEmailVerificationOtpService: ConfirmEmailVerificationOtpService,
     private readonly requestPasswordResetService: RequestPasswordResetService,
     private readonly completePasswordResetService: CompletePasswordResetService,
     private readonly changePasswordService: ChangePasswordService,
@@ -158,6 +160,15 @@ export class AuthController {
   confirmEmailVerification = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.confirmEmailVerificationService.execute(req.body.token);
+      res.status(200).json(ACK);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  confirmEmailVerificationOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.confirmEmailVerificationOtpService.execute(req.body.email, req.body.code);
       res.status(200).json(ACK);
     } catch (error) {
       next(error);

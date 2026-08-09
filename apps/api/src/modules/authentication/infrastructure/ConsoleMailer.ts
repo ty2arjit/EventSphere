@@ -14,6 +14,10 @@ export class ConsoleMailer implements Mailer {
     this.logger.info({ to, verificationLink }, '[DEV MAILER] Verify your email');
   }
 
+  async sendVerificationOtp(to: string, code: string): Promise<void> {
+    this.logger.info({ to, code }, '[DEV MAILER] Your verification code');
+  }
+
   async sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
     this.logger.info({ to, resetLink }, '[DEV MAILER] Reset your password');
   }

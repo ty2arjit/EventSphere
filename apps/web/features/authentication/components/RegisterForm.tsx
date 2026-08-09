@@ -2,7 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { MailCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { SuccessCheckmark } from "@/components/motion/SuccessCheckmark";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getErrorMessage } from "@/lib/api/errorMessages";
-import { register as registerUser } from "../api/authClient";
+import { register as registerUser, confirmEmailVerificationOtp } from "../api/authClient";
 import {
   registerSchema,
   type RegisterFormValues,
@@ -18,11 +20,16 @@ import {
 
 type Outcome =
   | { status: "idle" }
-  | { status: "success" }
+  | { status: "awaitingOtp"; email: string }
+  | { status: "verified" }
   | { status: "error"; message: string };
 
 export function RegisterForm() {
+  const router = useRouter();
   const [outcome, setOutcome] = useState<Outcome>({ status: "idle" });
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   const {
     register,
@@ -37,23 +44,90 @@ export function RegisterForm() {
     setOutcome({ status: "idle" });
     const result = await registerUser(values);
     if (result.ok) {
-      setOutcome({ status: "success" });
+      setOutcome({ status: "awaitingOtp", email: values.email });
     } else {
       setOutcome({ status: "error", message: getErrorMessage(result.error) });
     }
   }
 
-  if (outcome.status === "success") {
+  async function handleVerifyOtp(email: string) {
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpError("Enter the 6-digit code from your email.");
+      return;
+    }
+    setOtpError(null);
+    setVerifying(true);
+    const result = await confirmEmailVerificationOtp({ email, code: otp });
+    setVerifying(false);
+    if (result.ok) {
+      setOutcome({ status: "verified" });
+      setTimeout(() => router.push("/login"), 1800);
+    } else {
+      setOtpError(getErrorMessage(result.error));
+    }
+  }
+
+  if (outcome.status === "verified") {
     return (
       <FadeIn>
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-950">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-background/60 p-6">
           <SuccessCheckmark size={56} />
-          <h3 className="font-medium text-green-800 dark:text-green-200">
-            Check your email
-          </h3>
-          <p className="text-center text-sm text-green-700 dark:text-green-300">
-            We sent a verification link to your email address. Click the link to
-            complete your registration.
+          <h3 className="font-heading font-medium">Email verified</h3>
+          <p className="text-center text-sm text-muted-foreground">
+            Redirecting you to sign in…
+          </p>
+        </div>
+      </FadeIn>
+    );
+  }
+
+  if (outcome.status === "awaitingOtp") {
+    return (
+      <FadeIn>
+        <div className="space-y-4 rounded-xl border border-border bg-background/60 p-6">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <MailCheck className="size-5" />
+            </span>
+            <h3 className="font-heading font-medium">Check your email</h3>
+            <p className="text-sm text-muted-foreground">
+              We sent a 6-digit code to <strong>{outcome.email}</strong>. Enter
+              it below to verify your account.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="otp-code">Verification code</Label>
+            <Input
+              id="otp-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp(outcome.email)}
+              placeholder="123456"
+              className="text-center text-lg tracking-[0.4em]"
+            />
+            {otpError && (
+              <p role="alert" className="text-sm text-destructive">
+                {otpError}
+              </p>
+            )}
+          </div>
+
+          <Button
+            className="w-full"
+            disabled={verifying || otp.length !== 6}
+            onClick={() => handleVerifyOtp(outcome.email)}
+          >
+            {verifying ? "Verifying…" : "Verify email"}
+          </Button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            A verification link was also sent to the same address — either
+            works.
           </p>
         </div>
       </FadeIn>

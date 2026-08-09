@@ -9,6 +9,7 @@ import { PrismaUserCredentialRepository } from './modules/authentication/infrast
 import { Argon2PasswordHasher } from './modules/authentication/infrastructure/Argon2PasswordHasher';
 import { Sha256TokenHasher } from './modules/authentication/infrastructure/Sha256TokenHasher';
 import { CryptoRandomTokenGenerator } from './modules/authentication/infrastructure/CryptoRandomTokenGenerator';
+import { CryptoOtpGenerator } from './modules/authentication/infrastructure/CryptoOtpGenerator';
 import { JoseJwtService } from './modules/authentication/infrastructure/JoseJwtService';
 import { ConsoleMailer } from './modules/authentication/infrastructure/ConsoleMailer';
 import { ProfileGatewayAdapter } from './modules/authentication/infrastructure/ProfileGatewayAdapter';
@@ -72,6 +73,7 @@ const authorizeService = new AuthorizeResourceActionService(
 const passwordHasher = new Argon2PasswordHasher();
 const tokenHasher = new Sha256TokenHasher();
 const tokenGenerator = new CryptoRandomTokenGenerator();
+const otpGenerator = new CryptoOtpGenerator();
 const jwtService = new JoseJwtService(jwtAccessSecret);
 const mailer = new ConsoleMailer(logger);
 
@@ -104,6 +106,7 @@ const app = createApp({
     passwordHasher,
     tokenHasher,
     tokenGenerator,
+    otpGenerator,
     jwtService,
     mailer,
     eventPublisher,

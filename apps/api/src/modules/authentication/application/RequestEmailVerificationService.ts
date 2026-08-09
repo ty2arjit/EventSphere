@@ -1,6 +1,7 @@
 import { UserCredentialRepository } from '../domain/UserCredentialRepository';
 import { TokenHasher } from '../domain/services/TokenHasher';
 import { RandomTokenGenerator } from '../domain/services/RandomTokenGenerator';
+import { OtpGenerator } from '../domain/services/OtpGenerator';
 import { Mailer } from '../infrastructure/Mailer';
 import { AuthConfig } from './AuthConfig';
 
@@ -15,6 +16,7 @@ export class RequestEmailVerificationService {
     private readonly credentialRepository: UserCredentialRepository,
     private readonly tokenHasher: TokenHasher,
     private readonly tokenGenerator: RandomTokenGenerator,
+    private readonly otpGenerator: OtpGenerator,
     private readonly mailer: Mailer,
     private readonly config: AuthConfig,
   ) {}
@@ -29,11 +31,17 @@ export class RequestEmailVerificationService {
     const hash = this.tokenHasher.hash(raw);
     const expiresAt = new Date(Date.now() + this.config.emailVerificationTtlSeconds * 1000);
     credential.issueVerificationToken('email_verification', hash, expiresAt);
+
+    const otp = this.otpGenerator.generate();
+    const otpHash = this.tokenHasher.hash(otp);
+    credential.issueVerificationToken('email_verification', otpHash, expiresAt);
+
     await this.credentialRepository.updateTokens(credential);
 
     await this.mailer.sendVerificationEmail(
       credential.email,
       `${this.config.webBaseUrl}/email/verify/${raw}`,
     );
+    await this.mailer.sendVerificationOtp(credential.email, otp);
   }
 }

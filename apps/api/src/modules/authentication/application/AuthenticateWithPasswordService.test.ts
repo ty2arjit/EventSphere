@@ -10,6 +10,7 @@ import {
   InMemoryProfileGateway,
   RecordingMailer,
   SequentialTokenGenerator,
+  SequentialOtpGenerator,
 } from '../test-support/fakes';
 import { DEFAULT_AUTH_CONFIG } from './AuthConfig';
 import { InvalidCredentialsError } from '../domain/errors';
@@ -31,6 +32,7 @@ async function scenario() {
     passwordHasher,
     tokenHasher,
     tokenGenerator,
+    new SequentialOtpGenerator(),
     eventPublisher,
     mailer,
     DEFAULT_AUTH_CONFIG,

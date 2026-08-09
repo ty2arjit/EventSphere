@@ -6,6 +6,7 @@ import {
   FakePasswordHasher,
   FakeTokenHasher,
   SequentialTokenGenerator,
+  SequentialOtpGenerator,
   RecordingMailer,
   InMemoryProfileGateway,
 } from '../test-support/fakes';
@@ -25,6 +26,7 @@ function build() {
     new FakePasswordHasher(),
     new FakeTokenHasher(),
     new SequentialTokenGenerator(),
+    new SequentialOtpGenerator(),
     eventPublisher,
     mailer,
     DEFAULT_AUTH_CONFIG,
@@ -48,12 +50,12 @@ describe('RegisterCredentialService', () => {
     const credential = await credentialRepository.findByEmail('new@example.com');
     expect(credential).not.toBeNull();
     expect(credential?.hasPassword).toBe(true);
-    expect(credential?.tokens).toHaveLength(1);
-    expect(credential?.tokens[0]?.purpose).toBe('email_verification');
+    expect(credential?.tokens).toHaveLength(2);
+    expect(credential?.tokens.every((t) => t.purpose === 'email_verification')).toBe(true);
 
-    expect(mailer.sent).toHaveLength(1);
-    expect(mailer.sent[0]?.kind).toBe('verify');
-    expect(mailer.sent[0]?.link).toContain('/email/verify/token-1');
+    expect(mailer.sent).toHaveLength(2);
+    expect(mailer.sent[0]).toMatchObject({ kind: 'verify', link: expect.stringContaining('/email/verify/token-1') });
+    expect(mailer.sent[1]).toMatchObject({ kind: 'otp', code: '000001' });
 
     expect(eventPublisher.published.map((e) => e.eventType)).toContain(CREDENTIAL_REGISTERED);
   });
@@ -79,7 +81,7 @@ describe('RegisterCredentialService', () => {
     expect(mailer.sent).toHaveLength(0); // no email sent to the enumerator
     expect(profileGateway.createdProfiles).toHaveLength(initialCreatedCount); // no new profile
     const credential = await credentialRepository.findByEmail('existing@example.com');
-    expect(credential?.tokens).toHaveLength(1); // still just the first one
+    expect(credential?.tokens).toHaveLength(2); // still just the first pair (link + otp)
   });
 
   it('rejects a weak password before touching anything', async () => {
