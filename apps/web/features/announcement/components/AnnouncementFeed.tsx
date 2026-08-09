@@ -11,9 +11,9 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Megaphone } from "lucide-react";
 
 const PRIORITY_STYLES: Record<string, string> = {
-  Urgent: "border-l-destructive",
-  High: "border-l-accent",
-  Normal: "border-l-primary/60",
+  Urgent: "border-l-rose-500",
+  High: "border-l-orange-500",
+  Normal: "border-l-sky-500",
   Low: "border-l-muted-foreground/40",
 };
 

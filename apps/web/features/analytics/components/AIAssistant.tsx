@@ -95,7 +95,9 @@ export function AIAssistant({ eventId }: AIAssistantProps) {
         <FadeIn>
           <div className="space-y-3 rounded-xl border border-border bg-background/60 p-4">
             <div className="flex items-center gap-2 text-xs font-medium text-primary">
-              <Sparkles className="size-3.5" />
+              <span className="flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-violet-500 text-white">
+                <Sparkles className="size-3" />
+              </span>
               AI Insight
             </div>
             <p className="whitespace-pre-wrap text-sm">{response.content}</p>

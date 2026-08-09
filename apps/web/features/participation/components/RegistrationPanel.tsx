@@ -76,7 +76,7 @@ export function RegistrationPanel({ eventId, isOrganizer = false, onEnrolled }: 
           <>
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`inline-block size-2 rounded-full ${registration.isOpen ? "bg-primary" : "bg-destructive"}`}
+                className={`inline-block size-2 rounded-full ${registration.isOpen ? "bg-emerald-500" : "bg-rose-500"}`}
               />
               <span className="text-sm">
                 {registration.isOpen ? "Open" : "Closed"} &middot;{" "}

@@ -14,10 +14,10 @@ interface EnrollmentListProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  Approved: "bg-primary/15 text-primary",
-  Pending: "bg-accent/15 text-accent",
-  Rejected: "bg-destructive/15 text-destructive",
-  Waitlisted: "bg-secondary text-secondary-foreground",
+  Approved: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  Pending: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
+  Rejected: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+  Waitlisted: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
   Cancelled: "bg-muted text-muted-foreground",
 };
 

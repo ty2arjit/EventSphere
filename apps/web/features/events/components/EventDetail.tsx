@@ -39,14 +39,27 @@ const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefi
   Completed: { label: "Archive", target: "Archived" },
 };
 
+// Distinct per-state hues (not the muted primary/accent tokens used
+// elsewhere) — this page benefits from being able to tell Draft from Live
+// from Completed at a glance, the way a status board would.
 const STATE_BADGES: Record<string, string> = {
-  Draft: "bg-muted text-muted-foreground",
-  Published: "bg-accent/15 text-accent",
-  RegistrationOpen: "bg-primary/15 text-primary",
-  Live: "bg-destructive/15 text-destructive",
-  Completed: "bg-muted text-muted-foreground",
-  Cancelled: "bg-destructive/10 text-destructive",
+  Draft: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+  Published: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  RegistrationOpen: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  Live: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+  Completed: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  Cancelled: "bg-rose-500/10 text-rose-500 dark:text-rose-400",
   Archived: "bg-muted text-muted-foreground",
+};
+
+const STATE_DOTS: Record<string, string> = {
+  Draft: "bg-slate-500",
+  Published: "bg-sky-500",
+  RegistrationOpen: "bg-emerald-500",
+  Live: "bg-rose-500",
+  Completed: "bg-violet-500",
+  Cancelled: "bg-rose-500",
+  Archived: "bg-muted-foreground",
 };
 
 export function EventDetail({ slug }: { slug: string }) {
@@ -116,7 +129,10 @@ export function EventDetail({ slug }: { slug: string }) {
                   <p className="mt-1.5 max-w-2xl text-muted-foreground">{event.description}</p>
                 )}
               </div>
-              <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${badgeClass}`}>
+              <span
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${badgeClass}`}
+              >
+                <span className={`size-1.5 rounded-full ${STATE_DOTS[event.state] ?? "bg-muted-foreground"}`} />
                 {event.state}
               </span>
             </div>

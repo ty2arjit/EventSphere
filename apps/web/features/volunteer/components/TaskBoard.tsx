@@ -9,11 +9,13 @@ import { Spinner } from "@/components/ui/Spinner";
 
 const COLUMNS = ["Todo", "InProgress", "Blocked", "Completed", "Cancelled"] as const;
 
+// Distinct hues per priority — lets the board be scanned by color, the way
+// a kanban board should be, rather than everything reading as one brand tone.
 const PRIORITY_COLORS: Record<string, string> = {
-  Critical: "border-l-destructive",
-  High: "border-l-accent",
-  Medium: "border-l-primary/60",
-  Low: "border-l-muted-foreground/40",
+  Critical: "border-l-rose-500",
+  High: "border-l-orange-500",
+  Medium: "border-l-amber-400",
+  Low: "border-l-sky-500",
 };
 
 const NEXT_STATUS: Record<string, string[]> = {

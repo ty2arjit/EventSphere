@@ -22,6 +22,14 @@ const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefi
   Completed: { label: "Archive", target: "Archived" },
 };
 
+const STATE_BADGES: Record<string, string> = {
+  Planning: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+  Formation: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  Active: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  Completed: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  Archived: "bg-muted text-muted-foreground",
+};
+
 interface CommitteeDetailProps {
   eventId: string;
   communityId: string;
@@ -97,7 +105,9 @@ export function CommitteeDetail({ eventId, communityId, canManage = false }: Com
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-medium">{committee.name}</h3>
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATE_BADGES[committee.state] ?? "bg-secondary text-secondary-foreground"}`}
+          >
             {committee.state}
           </span>
         </div>
