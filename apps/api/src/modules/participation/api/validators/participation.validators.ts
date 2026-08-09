@@ -48,8 +48,15 @@ const reviewSchema = z.object({
   reviewerId: z.string().uuid(),
 });
 
+const checkInByQrSchema = z.object({
+  token: z.string().min(1),
+  eventId: z.string().uuid(),
+  sessionId: z.string().uuid(),
+});
+
 export const validateCreateRegistration = makeValidator(createRegistrationSchema);
 export const validateUpdateRegistration = makeValidator(updateRegistrationSchema);
 export const validateAddQuestion = makeValidator(addQuestionSchema);
 export const validateEnroll = makeValidator(enrollSchema);
 export const validateReview = makeValidator(reviewSchema);
+export const validateCheckInByQr = makeValidator(checkInByQrSchema);

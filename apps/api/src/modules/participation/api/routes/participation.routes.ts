@@ -11,6 +11,9 @@ import { ManageRegistrationService } from "../../application/ManageRegistrationS
 import { EnrollService } from "../../application/EnrollService";
 import { AttendanceService } from "../../application/AttendanceService";
 import { CertificateService } from "../../application/CertificateService";
+import { GenerateCheckInQrService } from "../../application/GenerateCheckInQrService";
+import { CheckInByQrService } from "../../application/CheckInByQrService";
+import { QrTokenService } from "../../infrastructure/QrTokenService";
 import { ParticipationController } from "../controllers/ParticipationController";
 import { requireAuth } from "../../../authentication/api/middleware/requireAuth";
 import { requireResourcePermission } from "../../../authorization/api/middleware/requirePermission";
@@ -23,6 +26,7 @@ import {
   validateAddQuestion,
   validateEnroll,
   validateReview,
+  validateCheckInByQr,
 } from "../validators/participation.validators";
 
 export interface ParticipationRouterDependencies {
@@ -33,11 +37,13 @@ export interface ParticipationRouterDependencies {
   eventRepository: EventRepository;
   eventPublisher: EventPublisher;
   authorizeService: AuthorizeResourceActionService;
+  qrTokenSecret: string;
 }
 
 export function createParticipationRouter(deps: ParticipationRouterDependencies): Router {
   const attendanceService = new AttendanceService(deps.attendanceRepository, deps.eventPublisher);
   const certificateService = new CertificateService(deps.certificateRepository, deps.eventPublisher);
+  const qrTokenService = new QrTokenService(deps.qrTokenSecret);
 
   const controller = new ParticipationController(
     new CreateRegistrationService(deps.registrationRepository, deps.eventPublisher),
@@ -45,6 +51,8 @@ export function createParticipationRouter(deps: ParticipationRouterDependencies)
     new EnrollService(deps.registrationRepository, deps.enrollmentRepository, deps.eventPublisher),
     attendanceService,
     certificateService,
+    new GenerateCheckInQrService(deps.enrollmentRepository, qrTokenService),
+    new CheckInByQrService(attendanceService, qrTokenService),
   );
 
   const requireManageByEventId = (getEventId: (req: import("express").Request) => string) =>
@@ -139,6 +147,14 @@ export function createParticipationRouter(deps: ParticipationRouterDependencies)
   router.post("/attendance/:id/check-out", requireAuth, requireManageByAttendanceId, controller.checkOut);
   router.post("/attendance/:id/verify", requireAuth, requireManageByAttendanceId, controller.verifyAttendance);
   router.get("/attendance/session/:sessionId", controller.listAttendanceBySession);
+  router.get("/enrollments/:id/qr-code", requireAuth, controller.getCheckInQr);
+  router.post(
+    "/attendance/check-in-by-qr",
+    requireAuth,
+    validateCheckInByQr,
+    requireManageByEventId((req) => req.body.eventId as string),
+    controller.checkInByQr,
+  );
 
   // Certificate — organizer-only
   router.post(

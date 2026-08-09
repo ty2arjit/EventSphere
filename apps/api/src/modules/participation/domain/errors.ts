@@ -59,7 +59,23 @@ export class RegistrationClosedError extends DomainError {
 export class EnrollmentAccessDeniedError extends DomainError {
   readonly kind: DomainErrorKind = "FORBIDDEN";
   readonly code = "ENROLLMENT_ACCESS_DENIED";
+  constructor(message = "You can only access your own enrollment") {
+    super(message);
+  }
+}
+
+export class EnrollmentNotApprovedError extends DomainError {
+  readonly kind: DomainErrorKind = "VALIDATION";
+  readonly code = "ENROLLMENT_NOT_APPROVED";
+  constructor(id: string) {
+    super(`Enrollment ${id} is not approved — no check-in QR code is available`);
+  }
+}
+
+export class InvalidCheckInTokenError extends DomainError {
+  readonly kind: DomainErrorKind = "VALIDATION";
+  readonly code = "INVALID_CHECKIN_TOKEN";
   constructor() {
-    super("You can only cancel your own enrollment");
+    super("This check-in code is invalid or has expired");
   }
 }

@@ -24,6 +24,7 @@ import { getEventBySlug, transitionEvent } from "../api/eventClient";
 import { CommitteeDetail } from "@/features/committee";
 import { RegistrationPanel } from "@/features/participation";
 import { EnrollmentList } from "@/features/participation";
+import { CheckInScanner } from "@/features/participation";
 import { TaskBoard, CreateTaskForm } from "@/features/volunteer";
 import { AnnouncementFeed, CreateAnnouncementForm } from "@/features/announcement";
 import { EventDashboardPanel, AIAssistant } from "@/features/analytics";
@@ -228,6 +229,9 @@ export function EventDetail({ slug }: { slug: string }) {
               eventId={event.id}
               isOrganizer={canManageParticipation}
             />
+            {canManageParticipation && (
+              <CheckInScanner eventId={event.id} sessions={event.sessions} />
+            )}
           </div>
         </Section>
 

@@ -4,6 +4,8 @@ import { ManageRegistrationService } from "../../application/ManageRegistrationS
 import { EnrollService } from "../../application/EnrollService";
 import { AttendanceService } from "../../application/AttendanceService";
 import { CertificateService } from "../../application/CertificateService";
+import { GenerateCheckInQrService } from "../../application/GenerateCheckInQrService";
+import { CheckInByQrService } from "../../application/CheckInByQrService";
 import { toRegistrationResponse, toEnrollmentResponse } from "../mappers/ParticipationMapper";
 
 export class ParticipationController {
@@ -13,6 +15,8 @@ export class ParticipationController {
     private readonly enrollService: EnrollService,
     private readonly attendanceService: AttendanceService,
     private readonly certificateService: CertificateService,
+    private readonly generateCheckInQrService: GenerateCheckInQrService,
+    private readonly checkInByQrService: CheckInByQrService,
   ) {}
 
   // ── Registration ──
@@ -127,6 +131,24 @@ export class ParticipationController {
   };
 
   // ── Attendance ──
+
+  getCheckInQr = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.generateCheckInQrService.execute(req.params.id as string, req.user!.id);
+      res.json(result);
+    } catch (err) { next(err); }
+  };
+
+  checkInByQr = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const a = await this.checkInByQrService.execute(req.body.token, req.body.eventId, req.body.sessionId);
+      res.status(201).json({
+        id: a.id,
+        status: a.status,
+        checkInAt: a.checkInAt?.toISOString(),
+      });
+    } catch (err) { next(err); }
+  };
 
   checkIn = async (req: Request, res: Response, next: NextFunction) => {
     try {

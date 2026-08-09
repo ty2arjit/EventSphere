@@ -87,6 +87,26 @@ export function rejectEnrollment(
   });
 }
 
+export function getCheckInQr(
+  enrollmentId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResult<{ qrCodeDataUrl: string; token: string; expiresAt: string }>> {
+  return request<{ qrCodeDataUrl: string; token: string; expiresAt: string }>(
+    `/api/v1/participation/enrollments/${enrollmentId}/qr-code`,
+    { signal: options.signal },
+  );
+}
+
+export function checkInByQr(
+  input: { token: string; eventId: string; sessionId: string },
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResult<{ id: string; status: string; checkInAt: string | null }>> {
+  return request<{ id: string; status: string; checkInAt: string | null }>(
+    "/api/v1/participation/attendance/check-in-by-qr",
+    { method: "POST", body: input, signal: options.signal },
+  );
+}
+
 export function verifyCertificate(
   code: string,
   options: { signal?: AbortSignal } = {},

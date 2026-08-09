@@ -139,6 +139,10 @@ const app = createApp({
     eventRepository,
     eventPublisher,
     authorizeService,
+    // Reuses the access-token secret rather than requiring a new env var —
+    // QrTokenService scopes tokens with a distinct issuer/audience, so a
+    // shared secret can't be replayed as a login token or vice versa.
+    qrTokenSecret: jwtAccessSecret,
   },
   volunteerDependencies: {
     taskRepository,

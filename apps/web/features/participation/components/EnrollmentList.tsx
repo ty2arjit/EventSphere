@@ -7,6 +7,8 @@ import { listEnrollments, approveEnrollment, rejectEnrollment } from "../api/par
 import type { EnrollmentResponse } from "../types";
 import { StaggerList, StaggerItem } from "@/components/motion/StaggerList";
 import { Spinner } from "@/components/ui/Spinner";
+import { MyCheckInQr } from "./MyCheckInQr";
+import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
 
 interface EnrollmentListProps {
   eventId: string;
@@ -24,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function EnrollmentList({ eventId, isOrganizer = false }: EnrollmentListProps) {
   const [enrollments, setEnrollments] = useState<EnrollmentResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useCurrentUser();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -91,6 +94,9 @@ export function EnrollmentList({ eventId, isOrganizer = false }: EnrollmentListP
                     Reject
                   </button>
                 </div>
+              )}
+              {enrollment.userId === user?.id && enrollment.status === "Approved" && (
+                <MyCheckInQr enrollmentId={enrollment.id} />
               )}
             </div>
           </StaggerItem>
