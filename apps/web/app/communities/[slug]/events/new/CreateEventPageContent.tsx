@@ -30,7 +30,7 @@ export function CreateEventPageContent({ communitySlug }: Props) {
   if (!communityId) return <p className="p-6 text-muted-foreground">Loading…</p>;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
+    <div className="flex items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Create an Event</CardTitle>
@@ -42,6 +42,6 @@ export function CreateEventPageContent({ communitySlug }: Props) {
           <CreateEventForm communityId={communityId} />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

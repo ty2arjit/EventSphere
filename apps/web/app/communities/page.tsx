@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function CommunitiesPage() {
   return (
-    <main className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>My Communities</CardTitle>
@@ -30,6 +30,6 @@ export default function CommunitiesPage() {
           <CommunityList />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

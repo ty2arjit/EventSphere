@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function NewCommunityPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
+    <div className="flex items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Create a Community</CardTitle>
@@ -27,6 +27,6 @@ export default function NewCommunityPage() {
           <CreateCommunityForm />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
