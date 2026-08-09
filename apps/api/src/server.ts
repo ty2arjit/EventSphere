@@ -12,6 +12,8 @@ import { CryptoRandomTokenGenerator } from './modules/authentication/infrastruct
 import { CryptoOtpGenerator } from './modules/authentication/infrastructure/CryptoOtpGenerator';
 import { JoseJwtService } from './modules/authentication/infrastructure/JoseJwtService';
 import { ConsoleMailer } from './modules/authentication/infrastructure/ConsoleMailer';
+import { ResendMailer } from './modules/authentication/infrastructure/ResendMailer';
+import type { Mailer } from './modules/authentication/infrastructure/Mailer';
 import { ProfileGatewayAdapter } from './modules/authentication/infrastructure/ProfileGatewayAdapter';
 import { RegisterProfileService } from './modules/profile/application/RegisterProfileService';
 import { PrismaCommunityRepository } from './modules/community/infrastructure/PrismaCommunityRepository';
@@ -75,7 +77,15 @@ const tokenHasher = new Sha256TokenHasher();
 const tokenGenerator = new CryptoRandomTokenGenerator();
 const otpGenerator = new CryptoOtpGenerator();
 const jwtService = new JoseJwtService(jwtAccessSecret);
-const mailer = new ConsoleMailer(logger);
+// Switches to a real transport the moment RESEND_API_KEY is set — no other
+// code change needed. RESEND_FROM_EMAIL must be a verified sender/domain
+// in that Resend account; falls back to onboarding@resend.dev (Resend's
+// own shared test sender, works with zero domain setup but only delivers
+// to the account owner's own inbox — fine for initial verification, not
+// for real users) if unset.
+const mailer: Mailer = process.env.RESEND_API_KEY
+  ? new ResendMailer(process.env.RESEND_API_KEY, process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev')
+  : new ConsoleMailer(logger);
 
 const authConfig: AuthConfig = {
   accessTokenTtlSeconds: 15 * 60,
