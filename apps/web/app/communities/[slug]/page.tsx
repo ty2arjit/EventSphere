@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: CommunityPageProps) {
 export default async function CommunityPage({ params }: CommunityPageProps) {
   const { slug } = await params;
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <CommunityDetail slug={slug} />
     </div>
   );

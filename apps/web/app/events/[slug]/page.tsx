@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: EventPageProps) {
 export default async function EventPage({ params }: EventPageProps) {
   const { slug } = await params;
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <EventDetail slug={slug} />
     </div>
   );

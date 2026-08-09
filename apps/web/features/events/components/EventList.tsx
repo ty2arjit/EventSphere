@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
 import { StaggerList, StaggerItem } from "@/components/motion/StaggerList";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
 import type { EventListItem } from "../types";
 import { listEventsByCommunity } from "../api/eventClient";
 import { EventCard } from "./EventCard";
@@ -30,9 +33,11 @@ export function EventList({ communityId }: EventListProps) {
     return () => controller.abort();
   }, [communityId]);
 
-  if (state.status === "loading") return <p className="text-muted-foreground">Loading events…</p>;
+  if (state.status === "loading") return <Spinner label="Loading events…" />;
   if (state.status === "error") return <p className="text-sm text-destructive">{state.message}</p>;
-  if (state.events.length === 0) return <p className="text-muted-foreground">No events yet.</p>;
+  if (state.events.length === 0) {
+    return <EmptyState icon={CalendarDays} message="No events yet." />;
+  }
 
   return (
     <StaggerList className="space-y-3">

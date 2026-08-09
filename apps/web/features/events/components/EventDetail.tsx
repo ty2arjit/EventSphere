@@ -2,7 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  CalendarDays,
+  MapPin,
+  Tag,
+  Users,
+  ClipboardCheck,
+  ListChecks,
+  Megaphone,
+  BarChart3,
+  Sparkles,
+  Clock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Section } from "@/components/ui/Section";
+import { Spinner } from "@/components/ui/Spinner";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getErrorMessage } from "@/lib/api/errorMessages";
 import type { EventResponse } from "../types";
@@ -23,6 +37,16 @@ const NEXT_TRANSITION: Record<string, { label: string; target: string } | undefi
   RegistrationClosed: { label: "Go Live", target: "Live" },
   Live: { label: "Complete", target: "Completed" },
   Completed: { label: "Archive", target: "Archived" },
+};
+
+const STATE_BADGES: Record<string, string> = {
+  Draft: "bg-muted text-muted-foreground",
+  Published: "bg-accent/15 text-accent",
+  RegistrationOpen: "bg-primary/15 text-primary",
+  Live: "bg-destructive/15 text-destructive",
+  Completed: "bg-muted text-muted-foreground",
+  Cancelled: "bg-destructive/10 text-destructive",
+  Archived: "bg-muted text-muted-foreground",
 };
 
 export function EventDetail({ slug }: { slug: string }) {
@@ -59,11 +83,12 @@ export function EventDetail({ slug }: { slug: string }) {
   const canManageTasks = useCanManage("task:manage", communityId, eventId, user?.id);
   const canManageAnnouncements = useCanManage("announcement:manage", communityId, eventId, user?.id);
 
-  if (state.status === "loading") return <p className="text-muted-foreground">Loading event…</p>;
+  if (state.status === "loading") return <Spinner label="Loading event…" />;
   if (state.status === "error") return <p className="text-sm text-destructive">{state.message}</p>;
 
   const { event } = state;
   const nextAction = NEXT_TRANSITION[event.state];
+  const badgeClass = STATE_BADGES[event.state] ?? "bg-muted text-muted-foreground";
 
   async function handleTransition(target: string) {
     setTransitioning(true);
@@ -81,93 +106,102 @@ export function EventDetail({ slug }: { slug: string }) {
   return (
     <FadeIn>
       <div className="space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{event.name}</h1>
-            {event.description && (
-              <p className="mt-2 text-muted-foreground">{event.description}</p>
-            )}
-          </div>
-          <span className="shrink-0 rounded-full border px-3 py-1 text-sm font-medium">
-            {event.state}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="font-medium">Mode:</span> {event.mode}
-          </div>
-          <div>
-            <span className="font-medium">Visibility:</span> {event.visibility}
-          </div>
-          {event.startDate && (
-            <div>
-              <span className="font-medium">Starts:</span>{" "}
-              {new Date(event.startDate).toLocaleString()}
-            </div>
-          )}
-          {event.endDate && (
-            <div>
-              <span className="font-medium">Ends:</span>{" "}
-              {new Date(event.endDate).toLocaleString()}
-            </div>
-          )}
-          {event.location.venue && (
-            <div className="col-span-2">
-              <span className="font-medium">Venue:</span> {event.location.venue}
-              {event.location.city && `, ${event.location.city}`}
-            </div>
-          )}
-          {event.category && (
-            <div>
-              <span className="font-medium">Category:</span> {event.category}
-            </div>
-          )}
-        </div>
-
-        {event.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {event.tags.map((tag) => (
-              <span key={tag} className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                {tag}
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
+          <div className="pointer-events-none absolute inset-0 bg-mesh opacity-60" />
+          <div className="relative space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h1 className="font-heading text-2xl font-semibold sm:text-3xl">{event.name}</h1>
+                {event.description && (
+                  <p className="mt-1.5 max-w-2xl text-muted-foreground">{event.description}</p>
+                )}
+              </div>
+              <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${badgeClass}`}>
+                {event.state}
               </span>
-            ))}
-          </div>
-        )}
+            </div>
 
-        {canManageEvent && (
-          <div className="flex gap-2">
-            {nextAction && (
-              <Button onClick={() => handleTransition(nextAction.target)} disabled={transitioning}>
-                {transitioning ? "Processing…" : nextAction.label}
-              </Button>
-            )}
-            {(event.state === "Draft" || event.state === "Published") && (
-              <Button
-                variant="outline"
-                onClick={() => handleTransition("Cancelled")}
-                disabled={transitioning}
-              >
-                Cancel Event
-              </Button>
-            )}
-          </div>
-        )}
+            <div className="flex flex-wrap gap-2 text-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
+                <MapPin className="size-3.5" />
+                {event.mode}
+                {event.location.venue &&
+                  ` · ${event.location.venue}${event.location.city ? `, ${event.location.city}` : ""}`}
+              </span>
+              {event.startDate && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
+                  <CalendarDays className="size-3.5" />
+                  {new Date(event.startDate).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </span>
+              )}
+              {event.endDate && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
+                  <Clock className="size-3.5" />
+                  Ends{" "}
+                  {new Date(event.endDate).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </span>
+              )}
+              {event.category && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
+                  <Tag className="size-3.5" />
+                  {event.category}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
+                {event.visibility}
+              </span>
+            </div>
 
-        <div>
-          <h2 className="text-lg font-semibold">Committee</h2>
-          <div className="mt-2">
-            <CommitteeDetail
-              eventId={event.id}
-              communityId={event.communityId}
-              canManage={canManageCommittee}
-            />
+            {event.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {event.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {canManageEvent && (
+              <div className="flex gap-2 pt-1">
+                {nextAction && (
+                  <Button onClick={() => handleTransition(nextAction.target)} disabled={transitioning}>
+                    {transitioning ? "Processing…" : nextAction.label}
+                  </Button>
+                )}
+                {(event.state === "Draft" || event.state === "Published") && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleTransition("Cancelled")}
+                    disabled={transitioning}
+                  >
+                    Cancel Event
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div>
-          <h2 className="text-lg font-semibold">Registration & Enrollment</h2>
-          <div className="mt-2 space-y-4">
+        <Section icon={Users} title="Committee">
+          <CommitteeDetail
+            eventId={event.id}
+            communityId={event.communityId}
+            canManage={canManageCommittee}
+          />
+        </Section>
+
+        <Section icon={ClipboardCheck} title="Registration & Enrollment">
+          <div className="space-y-4">
             <RegistrationPanel
               eventId={event.id}
               isOrganizer={canManageParticipation}
@@ -179,11 +213,10 @@ export function EventDetail({ slug }: { slug: string }) {
               isOrganizer={canManageParticipation}
             />
           </div>
-        </div>
+        </Section>
 
-        <div>
-          <h2 className="text-lg font-semibold">Tasks</h2>
-          <div className="mt-2 space-y-4">
+        <Section icon={ListChecks} title="Tasks">
+          <div className="space-y-4">
             {canManageTasks && (
               <CreateTaskForm
                 eventId={event.id}
@@ -192,36 +225,40 @@ export function EventDetail({ slug }: { slug: string }) {
             )}
             <TaskBoard key={taskRefreshKey} eventId={event.id} canManage={canManageTasks} />
           </div>
-        </div>
+        </Section>
 
-        <div className="space-y-4">
-          {canManageAnnouncements && (
-            <CreateAnnouncementForm
+        <Section icon={Megaphone} title="Announcements">
+          <div className="space-y-4">
+            {canManageAnnouncements && (
+              <CreateAnnouncementForm
+                eventId={event.id}
+                onCreated={() => setAnnouncementRefreshKey((k) => k + 1)}
+              />
+            )}
+            <AnnouncementFeed
+              key={announcementRefreshKey}
               eventId={event.id}
-              onCreated={() => setAnnouncementRefreshKey((k) => k + 1)}
+              isOrganizer={canManageAnnouncements}
             />
-          )}
-          <AnnouncementFeed
-            key={announcementRefreshKey}
-            eventId={event.id}
-            isOrganizer={canManageAnnouncements}
-          />
-        </div>
+          </div>
+        </Section>
 
-        <div>
+        <Section icon={BarChart3} title="Analytics">
           <EventDashboardPanel eventId={event.id} />
-        </div>
+        </Section>
 
-        <div>
+        <Section icon={Sparkles} title="AI Assistant">
           <AIAssistant eventId={event.id} />
-        </div>
+        </Section>
 
         {event.sessions.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold">Sessions</h2>
-            <div className="mt-2 space-y-2">
+          <Section icon={CalendarDays} title="Sessions">
+            <div className="space-y-2.5">
               {event.sessions.map((session) => (
-                <div key={session.id} className="rounded border p-3">
+                <div
+                  key={session.id}
+                  className="rounded-xl border border-border bg-background/60 p-4"
+                >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{session.title}</span>
                     <span className="text-xs text-muted-foreground">{session.state}</span>
@@ -233,7 +270,7 @@ export function EventDetail({ slug }: { slug: string }) {
                     <p className="text-sm">Speaker: {session.speaker}</p>
                   )}
                   {session.startAt && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {new Date(session.startAt).toLocaleString()}
                       {session.endAt && ` – ${new Date(session.endAt).toLocaleString()}`}
                     </p>
@@ -241,7 +278,7 @@ export function EventDetail({ slug }: { slug: string }) {
                 </div>
               ))}
             </div>
-          </div>
+          </Section>
         )}
       </div>
     </FadeIn>
