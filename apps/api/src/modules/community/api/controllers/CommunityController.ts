@@ -50,7 +50,7 @@ export class CommunityController {
   listMyCommunities = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const communities = await this.getCommunityService.listByMember(req.user!.id);
-      res.status(200).json(communities.map(CommunityMapper.toListItemDto));
+      res.status(200).json({ data: communities.map(CommunityMapper.toListItemDto) });
     } catch (error) { next(error); }
   };
 
