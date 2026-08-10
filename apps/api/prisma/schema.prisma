@@ -292,6 +292,7 @@ model Event {
   name         String
   slug         String    @unique
   description  String?
+  bannerUrl    String?
   category     String?
   tags         String[]  @default([])
   mode         String    @default("Offline")

@@ -54,6 +54,21 @@ export class CommunityController {
     } catch (error) { next(error); }
   };
 
+  /**
+   * Public discovery — no auth required, matches getById/getBySlug's
+   * public-read convention. Deliberately separate from listMyCommunities,
+   * which is membership-scoped and requires auth.
+   */
+  browse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const query = typeof req.query.q === 'string' && req.query.q.trim() ? req.query.q.trim() : null;
+      const page = Number(req.query.page ?? 0) || 0;
+      const pageSize = Number(req.query.pageSize ?? 20) || 20;
+      const { communities, total } = await this.getCommunityService.browse(query, page, pageSize);
+      res.status(200).json({ data: communities.map(CommunityMapper.toListItemDto), total, page, pageSize });
+    } catch (error) { next(error); }
+  };
+
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const community = await this.updateCommunityService.execute({

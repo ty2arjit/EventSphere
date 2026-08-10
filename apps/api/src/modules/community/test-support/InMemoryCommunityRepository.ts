@@ -25,6 +25,22 @@ export class InMemoryCommunityRepository implements CommunityRepository {
     return result;
   }
 
+  async search(
+    query: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<{ communities: Community[]; total: number }> {
+    let matches = [...this.store.values()].filter((c) => c.settings.isPublic);
+    if (query) {
+      const q = query.toLowerCase();
+      matches = matches.filter(
+        (c) => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q),
+      );
+    }
+    matches.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return { communities: matches.slice(offset, offset + limit), total: matches.length };
+  }
+
   async save(community: Community): Promise<void> {
     this.store.set(community.id, community);
   }

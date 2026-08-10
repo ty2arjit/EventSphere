@@ -19,6 +19,7 @@ export interface EventProps {
   name: string;
   slug: string;
   description: string | null;
+  bannerUrl: string | null;
   category: string | null;
   tags: string[];
   mode: EventMode;
@@ -56,6 +57,7 @@ export class Event {
       name: input.name,
       slug: input.slug,
       description: input.description ?? null,
+      bannerUrl: null,
       category: null,
       tags: [],
       mode: input.mode ?? 'Offline',
@@ -88,6 +90,7 @@ export class Event {
   get name(): string { return this.props.name; }
   get slug(): string { return this.props.slug; }
   get description(): string | null { return this.props.description; }
+  get bannerUrl(): string | null { return this.props.bannerUrl; }
   get category(): string | null { return this.props.category; }
   get tags(): readonly string[] { return this.props.tags; }
   get mode(): EventMode { return this.props.mode; }
@@ -112,6 +115,7 @@ export class Event {
   updateProfile(fields: {
     name?: string;
     description?: string | null;
+    bannerUrl?: string | null;
     category?: string | null;
     tags?: string[];
     mode?: EventMode;
@@ -120,6 +124,7 @@ export class Event {
     this.ensureWritable();
     if (fields.name !== undefined) this.props.name = fields.name;
     if (fields.description !== undefined) this.props.description = fields.description;
+    if (fields.bannerUrl !== undefined) this.props.bannerUrl = fields.bannerUrl;
     if (fields.category !== undefined) this.props.category = fields.category;
     if (fields.tags !== undefined) this.props.tags = fields.tags;
     if (fields.mode !== undefined) this.props.mode = fields.mode;

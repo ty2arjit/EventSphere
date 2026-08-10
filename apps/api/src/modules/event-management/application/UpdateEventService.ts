@@ -10,6 +10,7 @@ export interface UpdateEventInput {
   id: string;
   name?: string;
   description?: string | null;
+  bannerUrl?: string | null;
   category?: string | null;
   tags?: string[];
   mode?: EventMode;

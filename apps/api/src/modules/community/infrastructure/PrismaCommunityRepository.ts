@@ -116,6 +116,41 @@ export class PrismaCommunityRepository implements CommunityRepository {
     return records.map((r) => toDomain(r as Loaded));
   }
 
+  async search(
+    query: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<{ communities: Community[]; total: number }> {
+    const where = {
+      OR: [{ settings: null }, { settings: { isPublic: true } }],
+      ...(query
+        ? {
+            AND: [
+              {
+                OR: [
+                  { name: { contains: query, mode: 'insensitive' as const } },
+                  { slug: { contains: query, mode: 'insensitive' as const } },
+                ],
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [records, total] = await Promise.all([
+      this.prisma.community.findMany({
+        where,
+        include: INCLUDE,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.community.count({ where }),
+    ]);
+
+    return { communities: records.map((r) => toDomain(r as Loaded)), total };
+  }
+
   async save(community: Community): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.community.create({

@@ -107,3 +107,52 @@ describe('GET /api/v1/communities (listMyCommunities)', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('GET /api/v1/communities/browse', () => {
+  it('lists communities with no auth required', async () => {
+    const app = buildAuthedCommunityApp();
+    const cookies = await registerAndLogin(app, 'browse-owner@example.com');
+    await request(app)
+      .post('/api/v1/communities')
+      .set('Cookie', cookies)
+      .set('X-Requested-With', 'XMLHttpRequest')
+      .send({ name: 'Robotics Club', slug: 'robotics-club', description: null });
+
+    const res = await request(app).get('/api/v1/communities/browse');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toMatchObject({ name: 'Robotics Club', slug: 'robotics-club' });
+    expect(res.body.total).toBe(1);
+  });
+
+  it('filters by name/slug substring, case-insensitively', async () => {
+    const app = buildAuthedCommunityApp();
+    const cookies = await registerAndLogin(app, 'browse-owner2@example.com');
+    await request(app)
+      .post('/api/v1/communities')
+      .set('Cookie', cookies)
+      .set('X-Requested-With', 'XMLHttpRequest')
+      .send({ name: 'Coding Club', slug: 'coding-club', description: null });
+    await request(app)
+      .post('/api/v1/communities')
+      .set('Cookie', cookies)
+      .set('X-Requested-With', 'XMLHttpRequest')
+      .send({ name: 'Chess Club', slug: 'chess-club', description: null });
+
+    const res = await request(app).get('/api/v1/communities/browse?q=coding');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].slug).toBe('coding-club');
+  });
+
+  it('returns an empty page for a query matching nothing', async () => {
+    const app = buildAuthedCommunityApp();
+    const res = await request(app).get('/api/v1/communities/browse?q=nonexistent');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(0);
+    expect(res.body.total).toBe(0);
+  });
+});

@@ -17,6 +17,7 @@ import { createVolunteerRouter, VolunteerRouterDependencies } from './modules/vo
 import { createAnnouncementRouter, AnnouncementRouterDependencies } from './modules/announcement/api/routes/announcement.routes';
 import { createAnalyticsRouter, AnalyticsRouterDependencies } from './modules/analytics/api/routes/analytics.routes';
 import { createRecommendationRouter, RecommendationRouterDependencies } from './modules/recommendation/api/routes/recommendation.routes';
+import { createUploadsRouter, UploadsRouterDependencies } from './modules/uploads/api/routes/uploads.routes';
 import { EventPublisher } from './shared/events/EventPublisher';
 import { errorHandler } from './shared/errors/errorHandler';
 import { httpLoggerOptions, logger } from './shared/logger';
@@ -37,6 +38,7 @@ export interface AppDependencies {
   announcementDependencies?: AnnouncementRouterDependencies;
   analyticsDependencies?: AnalyticsRouterDependencies;
   recommendationDependencies?: RecommendationRouterDependencies;
+  uploadsDependencies?: UploadsRouterDependencies;
 }
 
 /**
@@ -60,6 +62,7 @@ export function createApp({
   announcementDependencies,
   analyticsDependencies,
   recommendationDependencies,
+  uploadsDependencies,
 }: AppDependencies): Express {
   const app = express();
 
@@ -188,6 +191,10 @@ export function createApp({
 
   if (recommendationDependencies) {
     app.use('/api/v1/ai', createRecommendationRouter(recommendationDependencies));
+  }
+
+  if (uploadsDependencies) {
+    app.use('/api/v1/uploads', createUploadsRouter(uploadsDependencies));
   }
 
   // Must be registered last — Express identifies error-handling middleware

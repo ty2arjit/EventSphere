@@ -33,6 +33,7 @@ import { VerifyIdentityService } from './modules/profile/application/VerifyIdent
 import { EMAIL_VERIFIED } from './modules/authentication/domain/events/EmailVerified';
 import { makeVerifyProfileOnEmailVerified } from './modules/authentication/application/subscribers/verifyProfileOnEmailVerified';
 import { AuthConfig } from './modules/authentication/application/AuthConfig';
+import { CloudinarySignatureService } from './modules/uploads/infrastructure/CloudinarySignatureService';
 import { logger } from './shared/logger';
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -86,6 +87,18 @@ const jwtService = new JoseJwtService(jwtAccessSecret);
 const mailer: Mailer = process.env.RESEND_API_KEY
   ? new ResendMailer(process.env.RESEND_API_KEY, process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev')
   : new ConsoleMailer(logger);
+
+// Same activation pattern as the mailer above — null (upload endpoint
+// returns 503, frontend falls back to URL-paste) until all three
+// Cloudinary env vars are set, then switches on with no code change.
+const cloudinarySignatureService =
+  process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
+    ? new CloudinarySignatureService(
+        process.env.CLOUDINARY_CLOUD_NAME,
+        process.env.CLOUDINARY_API_KEY,
+        process.env.CLOUDINARY_API_SECRET,
+      )
+    : null;
 
 const authConfig: AuthConfig = {
   accessTokenTtlSeconds: 15 * 60,
@@ -173,6 +186,9 @@ const app = createApp({
   },
   recommendationDependencies: {
     metricRepository,
+  },
+  uploadsDependencies: {
+    signatureService: cloudinarySignatureService,
   },
 });
 

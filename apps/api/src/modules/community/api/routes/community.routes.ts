@@ -76,6 +76,7 @@ export function createCommunityRouter(deps: CommunityRouterDependencies): Router
   const router = Router();
 
   // Public read endpoints
+  router.get('/browse', controller.browse);
   router.get('/slug/:slug', controller.getBySlug);
   router.get('/:id', controller.getById);
 

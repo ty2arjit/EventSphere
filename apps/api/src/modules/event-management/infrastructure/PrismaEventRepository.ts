@@ -45,6 +45,7 @@ export class PrismaEventRepository implements EventRepository {
           name: event.name,
           slug: event.slug,
           description: event.description,
+          bannerUrl: event.bannerUrl,
           category: event.category,
           tags: event.tags as string[],
           mode: event.mode,
@@ -90,6 +91,7 @@ export class PrismaEventRepository implements EventRepository {
         data: {
           name: event.name,
           description: event.description,
+          bannerUrl: event.bannerUrl,
           category: event.category,
           tags: event.tags as string[],
           mode: event.mode,
@@ -146,6 +148,7 @@ export class PrismaEventRepository implements EventRepository {
       name: row.name,
       slug: row.slug,
       description: row.description,
+      bannerUrl: row.bannerUrl,
       category: row.category,
       tags: row.tags ?? [],
       mode: row.mode as EventMode,
