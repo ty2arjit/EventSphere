@@ -15,6 +15,7 @@ export interface EventResponse {
   name: string;
   slug: string;
   description: string | null;
+  bannerUrl: string | null;
   category: string | null;
   tags: string[];
   mode: string;
@@ -45,6 +46,7 @@ export interface EventListItem {
   name: string;
   slug: string;
   description: string | null;
+  bannerUrl: string | null;
   mode: string;
   state: string;
   startDate: string | null;

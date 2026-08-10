@@ -14,13 +14,15 @@ import {
   Sparkles,
   Clock,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/Section";
 import { Spinner } from "@/components/ui/Spinner";
+import { ImageUploadField } from "@/components/ui/ImageUploadField";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getErrorMessage } from "@/lib/api/errorMessages";
 import type { EventResponse } from "../types";
-import { getEventBySlug, transitionEvent } from "../api/eventClient";
+import { getEventBySlug, transitionEvent, updateEvent } from "../api/eventClient";
 import { CommitteeDetail } from "@/features/committee";
 import { RegistrationPanel } from "@/features/participation";
 import { EnrollmentList } from "@/features/participation";
@@ -117,10 +119,35 @@ export function EventDetail({ slug }: { slug: string }) {
     setTransitioning(false);
   }
 
+  async function handleBannerUploaded(bannerUrl: string) {
+    const result = await updateEvent(event.id, { bannerUrl });
+    if (result.ok) {
+      setState({ status: "loaded", event: { ...event, bannerUrl } });
+    } else {
+      toast.error("Couldn't save the banner. Please try again.");
+    }
+  }
+
   return (
     <FadeIn>
       <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+          {canManageEvent ? (
+            <div className="p-4">
+              <ImageUploadField
+                folder="banners"
+                currentUrl={event.bannerUrl}
+                onUploaded={handleBannerUploaded}
+                shape="wide"
+              />
+            </div>
+          ) : event.bannerUrl ? (
+            <div className="relative aspect-[3/1] w-full">
+              <Image src={event.bannerUrl} alt="" fill unoptimized className="object-cover" />
+            </div>
+          ) : null}
+
+          <div className="relative p-6 sm:p-8">
           <div className="pointer-events-none absolute inset-0 bg-mesh opacity-60" />
           <div className="relative space-y-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -206,6 +233,7 @@ export function EventDetail({ slug }: { slug: string }) {
                 )}
               </div>
             )}
+          </div>
           </div>
         </div>
 

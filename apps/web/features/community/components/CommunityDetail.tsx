@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Users, Award, CalendarDays, Plus, ShieldCheck } from "lucide-react";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/Section";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { ImageUploadField } from "@/components/ui/ImageUploadField";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { useCurrentUser } from "@/features/authentication/hooks/useCurrentUser";
 import { EventList } from "@/features/events";
@@ -17,6 +19,7 @@ import {
   getCommunityBySlug,
   joinCommunity,
   leaveCommunity,
+  updateCommunity,
 } from "../api/communityClient";
 import { InviteMemberForm } from "./InviteMemberForm";
 
@@ -84,6 +87,15 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
     setActionLoading(false);
   }
 
+  async function handleLogoUploaded(logoUrl: string) {
+    const result = await updateCommunity(community.id, { logoUrl });
+    if (result.ok) {
+      setState({ status: "loaded", community: result.data });
+    } else {
+      toast.error("Couldn't save the logo. Please try again.");
+    }
+  }
+
   return (
     <FadeIn>
       <div className="space-y-6">
@@ -91,13 +103,27 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
           <div className="pointer-events-none absolute inset-0 bg-mesh opacity-60" />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
-              <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary font-heading text-2xl font-medium text-primary-foreground shadow-soft">
-                {initial}
-              </span>
+              {isOwner ? (
+                <ImageUploadField
+                  folder="logos"
+                  currentUrl={community.logoUrl}
+                  onUploaded={handleLogoUploaded}
+                  shape="square"
+                />
+              ) : community.logoUrl ? (
+                <span className="relative size-14 shrink-0 overflow-hidden rounded-2xl shadow-soft">
+                  <Image src={community.logoUrl} alt="" fill unoptimized className="object-cover" />
+                </span>
+              ) : (
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary font-heading text-2xl font-medium text-primary-foreground shadow-soft">
+                  {initial}
+                </span>
+              )}
               <div>
                 <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
                   {community.name}
                 </h1>
+                <p className="mt-0.5 font-mono text-xs text-muted-foreground">@{community.slug}</p>
                 {community.description && (
                   <p className="mt-1.5 max-w-xl text-muted-foreground">
                     {community.description}

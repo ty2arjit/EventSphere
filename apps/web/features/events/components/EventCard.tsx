@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { CalendarDays, MapPin, ArrowUpRight } from "lucide-react";
 import type { EventListItem } from "../types";
 
@@ -17,9 +18,14 @@ export function EventCard({ event }: { event: EventListItem }) {
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="group block rounded-xl border border-border bg-card p-4 shadow-soft transition-shadow hover:shadow-soft-lg"
+      className="group block overflow-hidden rounded-xl border border-border bg-card shadow-soft transition-shadow hover:shadow-soft-lg"
     >
-      <div className="flex items-start justify-between gap-3">
+      {event.bannerUrl && (
+        <div className="relative aspect-[3/1] w-full">
+          <Image src={event.bannerUrl} alt="" fill unoptimized className="object-cover" />
+        </div>
+      )}
+      <div className="flex items-start justify-between gap-3 p-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="truncate font-heading text-base font-medium">{event.name}</h3>
