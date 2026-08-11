@@ -30,6 +30,25 @@ export class CloudinarySignatureService {
     private readonly apiSecret: string,
   ) {}
 
+  /**
+   * Cloudinary's dashboard hands out credentials in two equivalent forms:
+   * three separate values (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET), or one
+   * combined connection string, CLOUDINARY_URL, shaped like
+   * `cloudinary://<api_key>:<api_secret>@<cloud_name>` — the same format
+   * Cloudinary's own SDKs auto-detect. Supporting both means whichever one
+   * someone copies from the dashboard just works.
+   */
+  static fromConnectionUrl(url: string): CloudinarySignatureService {
+    const match = /^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/.exec(url.trim());
+    if (!match) {
+      throw new Error(
+        'Invalid CLOUDINARY_URL — expected the form cloudinary://<api_key>:<api_secret>@<cloud_name>',
+      );
+    }
+    const [, apiKey, apiSecret, cloudName] = match;
+    return new CloudinarySignatureService(cloudName!, apiKey!, apiSecret!);
+  }
+
   sign(folder: UploadFolder): UploadSignature {
     const timestamp = Math.round(Date.now() / 1000);
     const signature = cloudinary.utils.api_sign_request({ folder, timestamp }, this.apiSecret);

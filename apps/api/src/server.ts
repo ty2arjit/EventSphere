@@ -89,16 +89,31 @@ const mailer: Mailer = process.env.RESEND_API_KEY
   : new ConsoleMailer(logger);
 
 // Same activation pattern as the mailer above — null (upload endpoint
-// returns 503, frontend falls back to URL-paste) until all three
-// Cloudinary env vars are set, then switches on with no code change.
-const cloudinarySignatureService =
-  process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
-    ? new CloudinarySignatureService(
-        process.env.CLOUDINARY_CLOUD_NAME,
-        process.env.CLOUDINARY_API_KEY,
-        process.env.CLOUDINARY_API_SECRET,
-      )
-    : null;
+// returns 503, frontend falls back to URL-paste) until Cloudinary
+// credentials are set, then switches on with no code change. Accepts
+// either the single combined CLOUDINARY_URL (what Cloudinary's dashboard
+// shows by default) or the three separate CLOUDINARY_CLOUD_NAME/API_KEY/
+// API_SECRET values — whichever form got copied in.
+function buildCloudinarySignatureService(): CloudinarySignatureService | null {
+  if (process.env.CLOUDINARY_URL) {
+    try {
+      return CloudinarySignatureService.fromConnectionUrl(process.env.CLOUDINARY_URL);
+    } catch (err) {
+      logger.error({ err }, 'Invalid CLOUDINARY_URL — cloud image upload stays disabled');
+      return null;
+    }
+  }
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    return new CloudinarySignatureService(
+      process.env.CLOUDINARY_CLOUD_NAME,
+      process.env.CLOUDINARY_API_KEY,
+      process.env.CLOUDINARY_API_SECRET,
+    );
+  }
+  return null;
+}
+
+const cloudinarySignatureService = buildCloudinarySignatureService();
 
 const authConfig: AuthConfig = {
   accessTokenTtlSeconds: 15 * 60,
