@@ -14,6 +14,20 @@ import { DEFAULT_AUTH_CONFIG } from './AuthConfig';
 import { CREDENTIAL_REGISTERED } from '../domain/events/CredentialRegistered';
 import { WeakPasswordError } from '../domain/errors';
 import { InvalidEmailAddressError } from '../domain/valueObjects/EmailAddress';
+import type { Mailer } from '../infrastructure/Mailer';
+
+/** Simulates a real mail-provider failure (rate limit, rejected recipient, network error). */
+class ThrowingMailer implements Mailer {
+  async sendVerificationEmail(): Promise<void> {
+    throw new Error('mail provider rejected the request');
+  }
+  async sendVerificationOtp(): Promise<void> {
+    throw new Error('mail provider rejected the request');
+  }
+  async sendPasswordResetEmail(): Promise<void> {
+    throw new Error('mail provider rejected the request');
+  }
+}
 
 function build() {
   const credentialRepository = new InMemoryUserCredentialRepository();
@@ -82,6 +96,32 @@ describe('RegisterCredentialService', () => {
     expect(profileGateway.createdProfiles).toHaveLength(initialCreatedCount); // no new profile
     const credential = await credentialRepository.findByEmail('existing@example.com');
     expect(credential?.tokens).toHaveLength(2); // still just the first pair (link + otp)
+  });
+
+  it('still creates the account even if the mail provider throws (registration must not 500 on a flaky email send)', async () => {
+    const credentialRepository = new InMemoryUserCredentialRepository();
+    const profileGateway = new InMemoryProfileGateway();
+    const eventPublisher = new RecordingEventPublisher();
+    const service = new RegisterCredentialService(
+      credentialRepository,
+      profileGateway,
+      new FakePasswordHasher(),
+      new FakeTokenHasher(),
+      new SequentialTokenGenerator(),
+      new SequentialOtpGenerator(),
+      eventPublisher,
+      new ThrowingMailer(),
+      DEFAULT_AUTH_CONFIG,
+    );
+
+    await expect(
+      service.execute({ email: 'mailfail@example.com', name: 'Mail Fail', password: 'correcthorse1battery' }),
+    ).resolves.toBeUndefined();
+
+    const credential = await credentialRepository.findByEmail('mailfail@example.com');
+    expect(credential).not.toBeNull();
+    expect(credential?.hasPassword).toBe(true);
+    expect(eventPublisher.published.map((e) => e.eventType)).toContain(CREDENTIAL_REGISTERED);
   });
 
   it('rejects a weak password before touching anything', async () => {

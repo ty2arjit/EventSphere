@@ -10,6 +10,7 @@ import { EventPublisher } from '../../../shared/events/EventPublisher';
 import { Mailer } from '../infrastructure/Mailer';
 import { AuthConfig } from './AuthConfig';
 import { ProfileGateway } from './ProfileGateway';
+import { logger } from '../../../shared/logger';
 
 export interface RegisterCredentialInput {
   email: string;
@@ -93,10 +94,19 @@ export class RegisterCredentialService {
       await this.eventPublisher.publish(event);
     }
 
-    await this.mailer.sendVerificationEmail(
-      email.value,
-      `${this.config.webBaseUrl}/email/verify/${rawToken}`,
-    );
-    await this.mailer.sendVerificationOtp(email.value, otp);
+    // The account is already fully created and durable at this point — a
+    // flaky mail provider (rate limit, an invalid `to` for a test-mode
+    // sender, a transient network error) must not turn into a 500 that
+    // tells the user registration failed when it didn't. Log and move on;
+    // the user can always hit "resend verification email" once logged in.
+    try {
+      await this.mailer.sendVerificationEmail(
+        email.value,
+        `${this.config.webBaseUrl}/email/verify/${rawToken}`,
+      );
+      await this.mailer.sendVerificationOtp(email.value, otp);
+    } catch (err) {
+      logger.error({ err, userCredentialId: credential.id }, 'Failed to send registration verification email');
+    }
   }
 }
