@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { SITE_URL } from "@/lib/siteUrl";
 import "./globals.css";
 
 // Self-hosted via next/font — inlined at build time, no runtime request to
@@ -15,9 +17,28 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "EventSphere is where a campus community plans, staffs, and runs an event — committees, registration, attendance, and certificates, in one place.";
+
 export const metadata: Metadata = {
-  title: "EventSphere",
-  description: "EventSphere — academic community events platform.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "EventSphere — Academic Community Events Platform",
+    template: "%s",
+  },
+  description: DESCRIPTION,
+  openGraph: {
+    title: "EventSphere — Academic Community Events Platform",
+    description: DESCRIPTION,
+    url: SITE_URL,
+    siteName: "EventSphere",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EventSphere — Academic Community Events Platform",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
@@ -32,6 +53,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        <GoogleAnalytics />
         <Providers>{children}</Providers>
       </body>
     </html>

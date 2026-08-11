@@ -18,6 +18,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/Section";
 import { Spinner } from "@/components/ui/Spinner";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { ImageUploadField } from "@/components/ui/ImageUploadField";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getErrorMessage } from "@/lib/api/errorMessages";
@@ -105,6 +106,37 @@ export function EventDetail({ slug }: { slug: string }) {
   const { event } = state;
   const nextAction = NEXT_TRANSITION[event.state];
   const badgeClass = STATE_BADGES[event.state] ?? "bg-muted text-muted-foreground";
+  const directionsQuery =
+    event.mode !== "Online"
+      ? [event.location.venue, event.location.address, event.location.city].filter(Boolean).join(", ")
+      : "";
+  const eventJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: event.name,
+    description: event.description ?? undefined,
+    startDate: event.startDate ?? undefined,
+    endDate: event.endDate ?? undefined,
+    eventAttendanceMode:
+      event.mode === "Online"
+        ? "https://schema.org/OnlineEventAttendanceMode"
+        : event.mode === "Hybrid"
+          ? "https://schema.org/MixedEventAttendanceMode"
+          : "https://schema.org/OfflineEventAttendanceMode",
+    eventStatus:
+      event.state === "Cancelled"
+        ? "https://schema.org/EventCancelled"
+        : "https://schema.org/EventScheduled",
+    location:
+      event.mode === "Online"
+        ? { "@type": "VirtualLocation", url: event.location.onlineUrl ?? undefined }
+        : {
+            "@type": "Place",
+            name: event.location.venue ?? event.name,
+            address: [event.location.address, event.location.city].filter(Boolean).join(", ") || undefined,
+          },
+    image: event.bannerUrl ?? undefined,
+  };
 
   async function handleTransition(target: string) {
     setTransitioning(true);
@@ -131,6 +163,13 @@ export function EventDetail({ slug }: { slug: string }) {
   return (
     <FadeIn>
       <div className="space-y-6">
+        {/* eslint-disable-next-line react/no-danger -- JSON-LD; "<" is escaped below so an event name/description
+            can't break out of the script tag (organizer-supplied strings, not fully trusted). */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd).replace(/</g, "\\u003c") }}
+        />
+        <Breadcrumbs items={[{ label: "Events", href: "/events" }, { label: event.name }]} />
         <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
           {canManageEvent ? (
             <div className="p-4">
@@ -143,7 +182,7 @@ export function EventDetail({ slug }: { slug: string }) {
             </div>
           ) : event.bannerUrl ? (
             <div className="relative aspect-[3/1] w-full">
-              <Image src={event.bannerUrl} alt="" fill unoptimized className="object-cover" />
+              <Image src={event.bannerUrl} alt={`${event.name} banner`} fill unoptimized className="object-cover" />
             </div>
           ) : null}
 
@@ -196,6 +235,16 @@ export function EventDetail({ slug }: { slug: string }) {
                   <Tag className="size-3.5" />
                   {event.category}
                 </span>
+              )}
+              {directionsQuery && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(directionsQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-primary underline-offset-2 hover:underline"
+                >
+                  Get directions
+                </a>
               )}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
                 {event.visibility}

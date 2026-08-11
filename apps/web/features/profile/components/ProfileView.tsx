@@ -33,7 +33,7 @@ export function ProfileView({ profile }: { profile: ProfileResponse }) {
               // eslint-disable-next-line @next/next/no-img-element -- avatar is a user-supplied URL, not a static asset
               <img
                 src={avatarUrl}
-                alt=""
+                alt={`${profile.name}'s avatar`}
                 className="size-full rounded-full object-cover"
               />
             ) : (

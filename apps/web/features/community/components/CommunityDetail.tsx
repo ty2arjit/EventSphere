@@ -8,6 +8,7 @@ import { Users, Award, CalendarDays, Plus, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/Section";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Spinner } from "@/components/ui/Spinner";
 import { ImageUploadField } from "@/components/ui/ImageUploadField";
 import { FadeIn } from "@/components/motion/FadeIn";
@@ -99,6 +100,7 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
   return (
     <FadeIn>
       <div className="space-y-6">
+        <Breadcrumbs items={[{ label: "Communities", href: "/communities" }, { label: community.name }]} />
         <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
           <div className="pointer-events-none absolute inset-0 bg-mesh opacity-60" />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -112,7 +114,7 @@ export function CommunityDetail({ slug }: CommunityDetailProps) {
                 />
               ) : community.logoUrl ? (
                 <span className="relative size-14 shrink-0 overflow-hidden rounded-2xl shadow-soft">
-                  <Image src={community.logoUrl} alt="" fill unoptimized className="object-cover" />
+                  <Image src={community.logoUrl} alt={`${community.name} logo`} fill unoptimized className="object-cover" />
                 </span>
               ) : (
                 <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary font-heading text-2xl font-medium text-primary-foreground shadow-soft">

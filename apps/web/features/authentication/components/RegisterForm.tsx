@@ -70,12 +70,17 @@ export function RegisterForm() {
   if (outcome.status === "verified") {
     return (
       <FadeIn>
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-background/60 p-6">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-background/60 p-6 text-center">
           <SuccessCheckmark size={56} />
-          <h3 className="font-heading font-medium">Email verified</h3>
-          <p className="text-center text-sm text-muted-foreground">
-            Redirecting you to sign in…
+          <h3 className="font-heading text-lg font-medium">You&apos;re all set</h3>
+          <p className="text-sm text-muted-foreground">
+            Your email is verified and your EventSphere account is ready. Sign
+            in to create your first community.
           </p>
+          <Button className="mt-1 w-full" onClick={() => router.push("/login")}>
+            Continue to sign in
+          </Button>
+          <p className="text-xs text-muted-foreground">Redirecting automatically…</p>
         </div>
       </FadeIn>
     );

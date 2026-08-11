@@ -17,7 +17,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
     >
       {community.logoUrl ? (
         <span className="relative size-11 shrink-0 overflow-hidden rounded-xl">
-          <Image src={community.logoUrl} alt="" fill unoptimized className="object-cover" />
+          <Image src={community.logoUrl} alt={`${community.name} logo`} fill unoptimized className="object-cover" />
         </span>
       ) : (
         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary font-heading text-lg font-medium text-primary-foreground">

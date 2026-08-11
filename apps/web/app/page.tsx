@@ -55,6 +55,34 @@ const FEATURES = [
   },
 ];
 
+const FAQS = [
+  {
+    question: "Is EventSphere free to use?",
+    answer:
+      "Yes. Creating a community, running events, taking registrations, and issuing certificates are all free.",
+  },
+  {
+    question: "Who can create a community or event?",
+    answer:
+      "Anyone with an account can create a community. Only the community's owner, or someone they've explicitly granted a permission to, can manage its events.",
+  },
+  {
+    question: "How does registration and approval work?",
+    answer:
+      "An organizer opens registration on an event with either automatic or manual approval. Participants enroll from the event page; approved enrollees can be checked in and issued a certificate.",
+  },
+  {
+    question: "Are the certificates actually verifiable?",
+    answer:
+      "Yes — every issued certificate can be looked up on the public verification page using its certificate ID, no login required.",
+  },
+  {
+    question: "Can I manage volunteers and tasks for an event?",
+    answer:
+      "Yes. Each event has a Kanban-style task board for coordinating your volunteer crew, plus an announcement feed to keep everyone posted.",
+  },
+];
+
 const STEPS = [
   {
     step: "01",
@@ -291,8 +319,39 @@ export default function Home() {
           </div>
         </section>
 
+        {/* FAQ */}
+        <section className="border-t border-border/70">
+          <div className="container mx-auto px-6 py-20 sm:py-24">
+            <FadeIn>
+              <div className="max-w-xl mb-10">
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  FAQ
+                </span>
+                <h2 className="mt-3 text-3xl font-heading font-semibold tracking-tight sm:text-4xl">
+                  Questions organizers actually ask
+                </h2>
+              </div>
+            </FadeIn>
+            <div className="mx-auto max-w-2xl divide-y divide-border border-t border-b border-border">
+              {FAQS.map(({ question, answer }, i) => (
+                <FadeIn key={question} delay={i * 0.05}>
+                  <details className="group py-5">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-heading text-base font-medium marker:content-none">
+                      {question}
+                      <span className="shrink-0 text-xl leading-none text-muted-foreground transition-transform group-open:rotate-45">
+                        +
+                      </span>
+                    </summary>
+                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{answer}</p>
+                  </details>
+                </FadeIn>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
-        <section className="container mx-auto px-6 py-20 sm:py-24">
+        <section className="container mx-auto px-6 py-20 sm:pt-24 sm:pb-32 pb-24">
           <FadeIn>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8 rounded-2xl border border-border bg-secondary/40 px-8 py-10 sm:px-12 sm:py-12">
               <div className="max-w-md">
@@ -327,9 +386,24 @@ export default function Home() {
             <Link href="/verify" className="hover:text-foreground transition-colors">
               Verify Certificate
             </Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
+              Privacy
+            </Link>
           </div>
         </div>
       </footer>
+
+      {/* Sticky mobile CTA — the primary hero CTA scrolls out of view fast on a
+          phone; this keeps "Create your community" reachable without hunting
+          back up the page. Desktop already has the CTA band + navbar. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 shadow-soft-lg backdrop-blur-md sm:hidden">
+        <Link
+          href="/register"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground shadow-soft"
+        >
+          Create your community
+        </Link>
+      </div>
     </div>
   );
 }

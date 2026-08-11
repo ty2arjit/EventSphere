@@ -22,7 +22,7 @@ export function EventCard({ event }: { event: EventListItem }) {
     >
       {event.bannerUrl && (
         <div className="relative aspect-[3/1] w-full">
-          <Image src={event.bannerUrl} alt="" fill unoptimized className="object-cover" />
+          <Image src={event.bannerUrl} alt={`${event.name} banner`} fill unoptimized className="object-cover" />
         </div>
       )}
       <div className="flex items-start justify-between gap-3 p-4">

@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/ui/Navbar";
+
+export const metadata: Metadata = {
+  title: "Communities | EventSphere",
+  description: "Browse and discover campus communities on EventSphere, or manage your own.",
+};
 
 export default function CommunitiesLayout({
   children,
