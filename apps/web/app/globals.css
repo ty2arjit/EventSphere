@@ -199,4 +199,15 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Faint dot grid — a quieter, more "technical product" backdrop than a
+     gradient blob. Used sparingly (hero only) so it reads as texture, not
+     decoration. */
+  .bg-dot-grid {
+    background-image: radial-gradient(
+      color-mix(in oklab, var(--foreground) 16%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
 }

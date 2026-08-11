@@ -1,5 +1,5 @@
 import { Event } from '../domain/Event';
-import { EventRepository } from '../domain/EventRepository';
+import { EventRepository, EventBrowseItem } from '../domain/EventRepository';
 import { EventNotFoundError } from '../domain/errors';
 
 export class GetEventService {
@@ -19,5 +19,15 @@ export class GetEventService {
 
   async byCommunity(communityId: string): Promise<Event[]> {
     return this.repository.findByCommunityId(communityId);
+  }
+
+  async browse(
+    query: string | null,
+    page: number,
+    pageSize: number,
+  ): Promise<{ items: EventBrowseItem[]; total: number }> {
+    const limit = Math.min(Math.max(pageSize, 1), 50);
+    const offset = Math.max(page, 0) * limit;
+    return this.repository.search(query, limit, offset);
   }
 }

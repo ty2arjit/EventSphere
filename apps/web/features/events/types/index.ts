@@ -54,6 +54,22 @@ export interface EventListItem {
   createdAt: string;
 }
 
+export interface EventBrowseItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  bannerUrl: string | null;
+  mode: string;
+  state: string;
+  startDate: string | null;
+  city: string | null;
+  venue: string | null;
+  communityId: string;
+  communityName: string;
+  communitySlug: string;
+}
+
 export interface CreateEventInput {
   communityId: string;
   name: string;

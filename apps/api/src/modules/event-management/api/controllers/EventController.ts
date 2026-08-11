@@ -4,7 +4,7 @@ import { GetEventService } from '../../application/GetEventService';
 import { UpdateEventService } from '../../application/UpdateEventService';
 import { TransitionEventService } from '../../application/TransitionEventService';
 import { ManageSessionService } from '../../application/ManageSessionService';
-import { toEventResponse, toEventListItem } from '../mappers/EventMapper';
+import { toEventResponse, toEventListItem, toEventBrowseItem } from '../mappers/EventMapper';
 
 export class EventController {
   constructor(
@@ -40,6 +40,16 @@ export class EventController {
     try {
       const events = await this.getEventService.byCommunity(req.params.communityId as string);
       res.json({ data: events.map(toEventListItem) });
+    } catch (err) { next(err); }
+  };
+
+  browse = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const query = typeof req.query.q === 'string' && req.query.q.trim() ? req.query.q.trim() : null;
+      const page = Number(req.query.page ?? 0) || 0;
+      const pageSize = Number(req.query.pageSize ?? 20) || 20;
+      const { items, total } = await this.getEventService.browse(query, page, pageSize);
+      res.status(200).json({ data: items.map(toEventBrowseItem), total, page, pageSize });
     } catch (err) { next(err); }
   };
 

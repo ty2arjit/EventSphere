@@ -52,6 +52,7 @@ export function createEventRouter(deps: EventRouterDependencies): Router {
   const router = Router();
 
   // Public read
+  router.get('/browse', controller.browse);
   router.get('/slug/:slug', controller.getBySlug);
   router.get('/community/:communityId', controller.listByCommunity);
   router.get('/:id', controller.getById);

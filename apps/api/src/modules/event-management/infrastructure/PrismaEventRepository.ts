@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { EventRepository } from '../domain/EventRepository';
+import { EventRepository, EventBrowseItem } from '../domain/EventRepository';
 import { Event, EventProps } from '../domain/Event';
 import { Session } from '../domain/entities/Session';
 import { EventSettings } from '../domain/entities/EventSettings';
@@ -34,6 +34,56 @@ export class PrismaEventRepository implements EventRepository {
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((r) => this.toDomain(r));
+  }
+
+  async search(
+    query: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<{ items: EventBrowseItem[]; total: number }> {
+    const where = {
+      visibility: 'Public',
+      state: { not: 'Draft' },
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' as const } },
+              { category: { contains: query, mode: 'insensitive' as const } },
+              { community: { name: { contains: query, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        include: { community: { select: { id: true, name: true, slug: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        description: r.description,
+        bannerUrl: r.bannerUrl,
+        mode: r.mode,
+        state: r.state,
+        startDate: r.startDate,
+        city: r.city,
+        venue: r.venueLocation,
+        communityId: r.community.id,
+        communityName: r.community.name,
+        communitySlug: r.community.slug,
+      })),
+      total,
+    };
   }
 
   async save(event: Event): Promise<void> {

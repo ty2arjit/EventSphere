@@ -53,3 +53,19 @@ export interface EventListItemDto {
   sessionCount: number;
   createdAt: string;
 }
+
+export interface EventBrowseItemDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  bannerUrl: string | null;
+  mode: string;
+  state: string;
+  startDate: string | null;
+  city: string | null;
+  venue: string | null;
+  communityId: string;
+  communityName: string;
+  communitySlug: string;
+}

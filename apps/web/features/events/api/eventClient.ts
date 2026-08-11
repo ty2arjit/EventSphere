@@ -1,6 +1,6 @@
 import { request } from "@/lib/api/http";
 import type { ApiResult } from "@/lib/api/types";
-import type { EventResponse, EventListItem, CreateEventInput } from "../types";
+import type { EventResponse, EventListItem, EventBrowseItem, CreateEventInput } from "../types";
 
 export function getEventById(
   id: string,
@@ -23,6 +23,21 @@ export function listEventsByCommunity(
   return request<{ data: EventListItem[] }>(`/api/v1/events/community/${communityId}`, {
     signal: options.signal,
   });
+}
+
+export function browseEvents(
+  params: { q?: string; page?: number; pageSize?: number } = {},
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResult<{ data: EventBrowseItem[]; total: number; page: number; pageSize: number }>> {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.page !== undefined) search.set("page", String(params.page));
+  if (params.pageSize !== undefined) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  return request<{ data: EventBrowseItem[]; total: number; page: number; pageSize: number }>(
+    `/api/v1/events/browse${qs ? `?${qs}` : ""}`,
+    { signal: options.signal },
+  );
 }
 
 export function createEvent(

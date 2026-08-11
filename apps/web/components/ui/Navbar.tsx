@@ -10,6 +10,7 @@ import { logout } from "@/features/authentication/api/authClient";
 
 const NAV_LINKS = [
   { href: "/communities", label: "Communities" },
+  { href: "/events", label: "Events" },
   { href: "/verify", label: "Verify Certificate" },
 ];
 

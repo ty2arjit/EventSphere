@@ -1,5 +1,6 @@
 import { Event } from '../../domain/Event';
-import { EventResponseDto, EventListItemDto, SessionResponseDto } from '../dto/EventResponseDto';
+import { EventBrowseItem } from '../../domain/EventRepository';
+import { EventResponseDto, EventListItemDto, EventBrowseItemDto, SessionResponseDto } from '../dto/EventResponseDto';
 
 export function toEventResponse(event: Event): EventResponseDto {
   return {
@@ -50,5 +51,23 @@ export function toEventListItem(event: Event): EventListItemDto {
     startDate: event.startDate?.toISOString() ?? null,
     sessionCount: event.sessions.length,
     createdAt: event.createdAt.toISOString(),
+  };
+}
+
+export function toEventBrowseItem(item: EventBrowseItem): EventBrowseItemDto {
+  return {
+    id: item.id,
+    name: item.name,
+    slug: item.slug,
+    description: item.description,
+    bannerUrl: item.bannerUrl,
+    mode: item.mode,
+    state: item.state,
+    startDate: item.startDate?.toISOString() ?? null,
+    city: item.city,
+    venue: item.venue,
+    communityId: item.communityId,
+    communityName: item.communityName,
+    communitySlug: item.communitySlug,
   };
 }
