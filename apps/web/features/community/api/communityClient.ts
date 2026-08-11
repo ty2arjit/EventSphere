@@ -36,6 +36,21 @@ export function listMyCommunities(
   });
 }
 
+export function browseCommunities(
+  params: { q?: string; page?: number; pageSize?: number } = {},
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResult<{ data: CommunityListItem[]; total: number; page: number; pageSize: number }>> {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.page !== undefined) search.set("page", String(params.page));
+  if (params.pageSize !== undefined) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  return request<{ data: CommunityListItem[]; total: number; page: number; pageSize: number }>(
+    `/api/v1/communities/browse${qs ? `?${qs}` : ""}`,
+    { signal: options.signal },
+  );
+}
+
 export function createCommunity(
   input: CreateCommunityInput,
   options: { signal?: AbortSignal } = {},
