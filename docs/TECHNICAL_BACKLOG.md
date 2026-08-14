@@ -98,13 +98,15 @@ Helmet is installed and mounted as the first middleware in `app.ts`. Security he
 
 ---
 
-### 🔵 BL-007 — Rate limiting uses in-memory store (partially resolved)
+### ✅ BL-007 — Rate limiting uses in-memory store (RESOLVED)
 **Origin:** Walking Skeleton review
-**Status:** Partially resolved — in-memory rate limiter active on auth endpoints
+**Status:** Resolved — Redis-backed store active when `REDIS_URL` is configured
 
-`express-rate-limit` now protects `/register`, `/login`, `/password/request-reset`, `/email/request-verification`, and `/email/verify` with per-IP limits. Uses the default in-memory store, which is fine for Railway's single-instance deployment.
+`express-rate-limit` protects `/register`, `/login`, `/password/request-reset`, `/email/request-verification`, and `/email/verify` with per-IP limits, now backed by `rate-limit-redis` (`src/modules/authentication/api/middleware/rateLimit.ts`) via a shared lazy Redis client (`src/shared/cache/redisClient.ts`). Falls back to express-rate-limit's default in-memory store when `REDIS_URL` is unset (local dev), same "inert until configured" pattern as Mailer/Cloudinary. Limits now persist across restarts and would be shared correctly if this ever runs on more than one Railway instance.
 
-**Remaining:** Redis-backed store needed for multi-instance deployments. Add when scaling beyond a single Railway instance.
+**Also added:** `CachedMetricRepository` (`src/modules/analytics/infrastructure/`) caches the Analytics event-dashboard read (`findByEntityId`, 30s TTL, invalidated on every `save()`) through the same Redis client — the first read-model caching use of Redis, per `SystemDesign.md`'s "frequently accessed read models" caching goal.
+
+**Also added:** `CachedPermissionPolicyRepository` (`src/modules/authorization/infrastructure/`) caches the singleton `PermissionPolicy` — loaded on every authorization check across the app, the busiest read in the system. 5-minute TTL as a safety net; correctness comes from invalidating on every `save()` (every grant/revoke/permission-create path goes through the same repository, so no call site can bypass invalidation). A failed cache delete after a mutation is logged at `error`, not `warn` — a stale policy here can mean a just-revoked grant keeps returning `Allow`, which is the one failure mode in this caching pass worth paging on.
 
 ---
 

@@ -18,6 +18,7 @@ import { ProfileGatewayAdapter } from './modules/authentication/infrastructure/P
 import { RegisterProfileService } from './modules/profile/application/RegisterProfileService';
 import { PrismaCommunityRepository } from './modules/community/infrastructure/PrismaCommunityRepository';
 import { PrismaPermissionPolicyRepository } from './modules/authorization/infrastructure/PrismaPermissionPolicyRepository';
+import { CachedPermissionPolicyRepository } from './modules/authorization/infrastructure/CachedPermissionPolicyRepository';
 import { PrismaEventRepository } from './modules/event-management/infrastructure/PrismaEventRepository';
 import { PrismaEventCommitteeRepository } from './modules/committee/infrastructure/PrismaEventCommitteeRepository';
 import { PrismaRegistrationRepository } from './modules/participation/infrastructure/PrismaRegistrationRepository';
@@ -27,6 +28,8 @@ import { PrismaCertificateRepository } from './modules/participation/infrastruct
 import { PrismaOperationalTaskRepository } from './modules/volunteer/infrastructure/PrismaOperationalTaskRepository';
 import { PrismaAnnouncementRepository } from './modules/announcement/infrastructure/PrismaAnnouncementRepository';
 import { PrismaMetricRepository } from './modules/analytics/infrastructure/PrismaMetricRepository';
+import { CachedMetricRepository } from './modules/analytics/infrastructure/CachedMetricRepository';
+import { getRedisClient } from './shared/cache/redisClient';
 import { AuthorizeResourceActionService } from './modules/authorization/application/AuthorizeResourceActionService';
 import { seedDefaultPermissions } from './modules/authorization/application/PermissionSeeder';
 import { VerifyIdentityService } from './modules/profile/application/VerifyIdentityService';
@@ -58,7 +61,13 @@ eventPublisher.subscribe(PROFILE_REGISTERED, logProfileRegistered);
 const profileRepository = new PrismaProfileRepository(prisma);
 const credentialRepository = new PrismaUserCredentialRepository(prisma);
 const communityRepository = new PrismaCommunityRepository(prisma);
-const permissionPolicyRepository = new PrismaPermissionPolicyRepository(prisma);
+// The busiest read in the app — loaded on every authorization check. Wrapped
+// in the same Redis cache decorator pattern as the metrics repository;
+// inert (pure passthrough) if REDIS_URL isn't set.
+const permissionPolicyRepository = new CachedPermissionPolicyRepository(
+  new PrismaPermissionPolicyRepository(prisma),
+  getRedisClient(),
+);
 const eventRepository = new PrismaEventRepository(prisma);
 const committeeRepository = new PrismaEventCommitteeRepository(prisma);
 const registrationRepository = new PrismaRegistrationRepository(prisma);
@@ -67,7 +76,9 @@ const attendanceRepository = new PrismaAttendanceRepository(prisma);
 const certificateRepository = new PrismaCertificateRepository(prisma);
 const taskRepository = new PrismaOperationalTaskRepository(prisma);
 const announcementRepository = new PrismaAnnouncementRepository(prisma);
-const metricRepository = new PrismaMetricRepository(prisma);
+// Wrapped in the Redis-backed cache decorator — inert (pure passthrough) if
+// REDIS_URL isn't set, so this is safe to always wire in.
+const metricRepository = new CachedMetricRepository(new PrismaMetricRepository(prisma), getRedisClient());
 const authorizeService = new AuthorizeResourceActionService(
   permissionPolicyRepository,
   communityRepository,
@@ -223,13 +234,16 @@ seedDefaultPermissions(permissionPolicyRepository)
  */
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'Shutting down');
+  const redis = getRedisClient();
+  const closeConnections = () => Promise.all([prisma.$disconnect(), redis ? redis.quit() : Promise.resolve()]);
+
   if (!server) {
-    await prisma.$disconnect();
+    await closeConnections();
     process.exit(0);
     return;
   }
   server.close(() => {
-    void prisma.$disconnect().finally(() => process.exit(0));
+    void closeConnections().finally(() => process.exit(0));
   });
 }
 

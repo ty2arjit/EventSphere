@@ -44,7 +44,7 @@
 | Item | Version | Notes |
 |---|---|---|
 | PostgreSQL | 16.x | Neon-managed; 17.x is a viable alternative if fully supported by Neon at setup time |
-| Redis | 7.x | Note: Redis Inc. changed licensing in 2024 (source-available, not OSS, past a certain version). Confirm your hosting provider (e.g. Upstash) uses a version/fork under a license you're comfortable with — this affects provider choice, not just a version number. |
+| Redis | ✅ Railway Redis plugin (installed) | Provisioned as a Railway service in the same project; `REDIS_URL` referenced into the API service's env (`${{Redis.REDIS_URL}}`), not hand-copied. Client: `ioredis` ^6, plus `rate-limit-redis` ^6 for the rate-limit store. |
 
 ## AI
 
