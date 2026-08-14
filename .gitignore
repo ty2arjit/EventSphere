@@ -35,3 +35,6 @@ coverage/
 *.temp.ts
 
 .claude/
+
+# Personal interview/placement prep — never published, local reference only
+docs-private/
