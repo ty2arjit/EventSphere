@@ -310,6 +310,13 @@ model Event {
   allowWaitlist         Boolean @default(true)
   showAttendeeList      Boolean @default(true)
   allowGuestRegistration Boolean @default(false)
+  // Pricing — an event is free unless isPaid is set. priceAmount is stored in
+  // the currency's minor unit (paise for INR) as an integer: money is never a
+  // float. Enforced at publish time (see Event.publish): a paid event must
+  // carry a positive amount.
+  isPaid        Boolean  @default(false)
+  priceAmount   Int?
+  priceCurrency String   @default("INR")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -468,6 +475,36 @@ model CertificateRecord {
   @@index([userId])
   @@index([verificationCode])
   @@map("certificates")
+}
+
+// ── Payment Domain ──
+
+model Payment {
+  id                String    @id @default(uuid())
+  eventId           String
+  userId            String
+  // The enrollment this payment unlocks. Nullable only for the brief window
+  // between order creation and the enrollment being linked; in practice the
+  // enrollment always exists first (it is created in PendingPayment state).
+  enrollmentId      String?
+  // Minor units (paise for INR) — integer, never a float.
+  amount            Int
+  currency          String    @default("INR")
+  // Created → Paid | Failed. Refunded is a post-Paid terminal state.
+  status            String    @default("Created")
+  provider          String    @default("razorpay")
+  // Razorpay's order id (order_XXX). Unique so a duplicate create is a no-op.
+  providerOrderId   String    @unique
+  // Razorpay's payment id (pay_XXX), known only once the user actually pays.
+  // Unique so the verify endpoint and the webhook can't double-confirm.
+  providerPaymentId String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("payments")
 }
 
 // ── Volunteer Domain ──

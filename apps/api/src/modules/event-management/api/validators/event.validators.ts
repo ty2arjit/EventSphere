@@ -35,6 +35,12 @@ const updateEventSchema = z.object({
     min: z.number().int().min(0).nullable().optional(),
     max: z.number().int().min(1).nullable().optional(),
   }).optional(),
+  pricing: z.object({
+    isPaid: z.boolean().optional(),
+    // Minor units (paise). Cap at ₹10,00,000 to catch a rupee/paise mix-up.
+    amount: z.number().int().min(0).max(100_000_000).nullable().optional(),
+    currency: z.enum(['INR']).optional(),
+  }).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   settings: z.object({

@@ -1,5 +1,6 @@
 import type { RegistrationRepository } from "../domain/RegistrationRepository";
 import type { EnrollmentRepository } from "../domain/EnrollmentRepository";
+import type { EventRepository } from "../../event-management/domain/EventRepository";
 import type { EventPublisher } from "../../../shared/events/EventPublisher";
 import { Enrollment, type EnrollmentResponse } from "../domain/Enrollment";
 import {
@@ -19,6 +20,7 @@ export class EnrollService {
     private readonly registrationRepo: RegistrationRepository,
     private readonly enrollmentRepo: EnrollmentRepository,
     private readonly publisher: EventPublisher,
+    private readonly eventRepo: EventRepository,
   ) {}
 
   async enroll(
@@ -35,10 +37,30 @@ export class EnrollService {
     }
 
     const existing = await this.enrollmentRepo.findByEventAndUser(eventId, userId);
-    if (existing && existing.isActive) throw new DuplicateEnrollmentError(userId, eventId);
+    if (existing && existing.isActive) {
+      // A paid enrollment that never completed payment isn't a "duplicate" —
+      // it's the same attempt resumed. Hand it back so the caller can
+      // re-drive the payment modal instead of erroring.
+      if (existing.status === "PendingPayment") return existing;
+      throw new DuplicateEnrollmentError(userId, eventId);
+    }
 
     const autoApprove = registration.approvalStrategy === "Automatic";
     const atCapacity = registration.isAtCapacity(activeCount);
+
+    // Paid event → hold the seat in PendingPayment and let the payment
+    // context move it forward on PaymentSucceeded. Waitlisted entrants don't
+    // pay yet (they may never get a seat), so the paid branch only applies
+    // when there's actually a seat to take.
+    const event = await this.eventRepo.findById(eventId);
+    const isPaid = event?.pricing.isPaid === true && (event?.pricing.amount ?? 0) > 0;
+
+    if (isPaid && !(atCapacity && registration.capacity.allowWaitlist)) {
+      const pending = Enrollment.createPendingPayment(registration.id, eventId, userId, responses);
+      await this.enrollmentRepo.save(pending);
+      await this.publisher.publish(enrollmentCreated(pending.id, eventId, userId, pending.status));
+      return pending;
+    }
 
     const enrollment = Enrollment.create(registration.id, eventId, userId, responses, autoApprove && !atCapacity);
 
@@ -49,6 +71,25 @@ export class EnrollService {
     await this.enrollmentRepo.save(enrollment);
     await this.publisher.publish(enrollmentCreated(enrollment.id, eventId, userId, enrollment.status));
     return enrollment;
+  }
+
+  /**
+   * Invoked (via the PaymentSucceeded subscriber) once the payment context
+   * confirms the fee is paid. Idempotent: a already-confirmed enrollment or a
+   * missing one is a no-op, because the webhook and the browser verify call
+   * can both trigger this for the same payment.
+   */
+  async confirmPaidEnrollment(eventId: string, userId: string): Promise<void> {
+    const enrollment = await this.enrollmentRepo.findByEventAndUser(eventId, userId);
+    if (!enrollment || enrollment.status !== "PendingPayment") return;
+
+    const registration = await this.registrationRepo.findByEventId(eventId);
+    const autoApprove = registration?.approvalStrategy === "Automatic";
+
+    const fromStatus = enrollment.status;
+    enrollment.confirmPayment(autoApprove);
+    await this.enrollmentRepo.update(enrollment);
+    await this.publisher.publish(enrollmentStatusChanged(enrollment.id, fromStatus, enrollment.status));
   }
 
   async approve(enrollmentId: string, reviewerId: string): Promise<void> {
