@@ -37,6 +37,13 @@ import { EMAIL_VERIFIED } from './modules/authentication/domain/events/EmailVeri
 import { makeVerifyProfileOnEmailVerified } from './modules/authentication/application/subscribers/verifyProfileOnEmailVerified';
 import { AuthConfig } from './modules/authentication/application/AuthConfig';
 import { CloudinarySignatureService } from './modules/uploads/infrastructure/CloudinarySignatureService';
+import { PrismaPaymentRepository } from './modules/payment/infrastructure/PrismaPaymentRepository';
+import { RazorpayGateway } from './modules/payment/infrastructure/RazorpayGateway';
+import { EventRepositoryPricingReader } from './modules/payment/infrastructure/EventRepositoryPricingReader';
+import type { PaymentGateway } from './modules/payment/domain/PaymentGateway';
+import { PAYMENT_SUCCEEDED } from './modules/payment/domain/events/PaymentEvents';
+import { EnrollService } from './modules/participation/application/EnrollService';
+import { makeConfirmEnrollmentOnPaymentSucceeded } from './modules/participation/application/subscribers/confirmEnrollmentOnPaymentSucceeded';
 import { logger } from './shared/logger';
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -125,6 +132,40 @@ function buildCloudinarySignatureService(): CloudinarySignatureService | null {
 }
 
 const cloudinarySignatureService = buildCloudinarySignatureService();
+
+// Same null-until-configured activation pattern as the mailer/Cloudinary
+// above: without Razorpay credentials the /api/v1/payments/* routes simply
+// aren't mounted, and paid-event enrollments can't be completed. Set
+// RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET to switch it on; RAZORPAY_WEBHOOK_SECRET
+// is additionally required for the server-to-server webhook to be trusted.
+const paymentGateway: PaymentGateway | null =
+  process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
+    ? new RazorpayGateway(
+        process.env.RAZORPAY_KEY_ID,
+        process.env.RAZORPAY_KEY_SECRET,
+        process.env.RAZORPAY_WEBHOOK_SECRET ?? null,
+      )
+    : null;
+
+const paymentRepository = new PrismaPaymentRepository(prisma);
+
+// A composition-root EnrollService instance dedicated to the cross-context
+// subscriber below (the participation router builds its own for HTTP). When a
+// payment settles, the enrollee's PendingPayment enrollment is moved forward.
+const paymentEnrollService = new EnrollService(
+  registrationRepository,
+  enrollmentRepository,
+  eventPublisher,
+  eventRepository,
+);
+eventPublisher.subscribe(
+  PAYMENT_SUCCEEDED,
+  makeConfirmEnrollmentOnPaymentSucceeded(paymentEnrollService),
+);
+
+if (!paymentGateway) {
+  logger.warn('RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET not set — payment endpoints are disabled');
+}
 
 const authConfig: AuthConfig = {
   accessTokenTtlSeconds: 15 * 60,
@@ -216,6 +257,14 @@ const app = createApp({
   uploadsDependencies: {
     signatureService: cloudinarySignatureService,
   },
+  paymentDependencies: paymentGateway
+    ? {
+        paymentRepository,
+        paymentGateway,
+        eventPricingReader: new EventRepositoryPricingReader(eventRepository),
+        eventPublisher,
+      }
+    : undefined,
 });
 
 let server: ReturnType<typeof app.listen>;

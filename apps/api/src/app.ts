@@ -18,6 +18,7 @@ import { createAnnouncementRouter, AnnouncementRouterDependencies } from './modu
 import { createAnalyticsRouter, AnalyticsRouterDependencies } from './modules/analytics/api/routes/analytics.routes';
 import { createRecommendationRouter, RecommendationRouterDependencies } from './modules/recommendation/api/routes/recommendation.routes';
 import { createUploadsRouter, UploadsRouterDependencies } from './modules/uploads/api/routes/uploads.routes';
+import { createPaymentRouter, createPaymentWebhookApp, PaymentRouterDependencies } from './modules/payment/api/routes/payment.routes';
 import { EventPublisher } from './shared/events/EventPublisher';
 import { errorHandler } from './shared/errors/errorHandler';
 import { httpLoggerOptions, logger } from './shared/logger';
@@ -39,6 +40,7 @@ export interface AppDependencies {
   analyticsDependencies?: AnalyticsRouterDependencies;
   recommendationDependencies?: RecommendationRouterDependencies;
   uploadsDependencies?: UploadsRouterDependencies;
+  paymentDependencies?: PaymentRouterDependencies;
 }
 
 /**
@@ -63,6 +65,7 @@ export function createApp({
   analyticsDependencies,
   recommendationDependencies,
   uploadsDependencies,
+  paymentDependencies,
 }: AppDependencies): Express {
   const app = express();
 
@@ -85,6 +88,15 @@ export function createApp({
 
   app.use(cors({ origin: corsOrigins, credentials: true }));
   app.use(cookieParser());
+
+  // Razorpay webhook — mounted BEFORE express.json() and the CSRF guard.
+  // Signature verification hashes the exact raw bytes Razorpay signed, so the
+  // body must not be JSON-parsed first; and Razorpay can't send our
+  // X-Requested-With header, so authenticity comes from the HMAC instead.
+  if (paymentDependencies) {
+    app.use('/api/v1/payments/webhook', createPaymentWebhookApp(paymentDependencies));
+  }
+
   app.use(express.json());
 
   // Defense-in-depth against CSRF, alongside the CORS origin allowlist above.
@@ -195,6 +207,10 @@ export function createApp({
 
   if (uploadsDependencies) {
     app.use('/api/v1/uploads', createUploadsRouter(uploadsDependencies));
+  }
+
+  if (paymentDependencies) {
+    app.use('/api/v1/payments', createPaymentRouter(paymentDependencies));
   }
 
   // Must be registered last — Express identifies error-handling middleware
