@@ -17,6 +17,11 @@ export interface UpdateEventInput {
   visibility?: EventVisibility;
   location?: Location;
   capacity?: Capacity;
+  pricing?: {
+    isPaid?: boolean;
+    amount?: number | null;
+    currency?: string;
+  };
   startDate?: Date;
   endDate?: Date;
   settings?: {
@@ -37,11 +42,12 @@ export class UpdateEventService {
     const event = await this.repository.findById(input.id);
     if (!event) throw new EventNotFoundError(input.id);
 
-    const { id: _, location, capacity, startDate, endDate, settings, ...profileFields } = input;
+    const { id: _, location, capacity, pricing, startDate, endDate, settings, ...profileFields } = input;
     const hasProfileUpdates = Object.keys(profileFields).length > 0;
     if (hasProfileUpdates) event.updateProfile(profileFields);
     if (location) event.updateLocation(location);
     if (capacity) event.updateCapacity(capacity);
+    if (pricing) event.updatePricing(pricing);
     if (startDate && endDate) event.updateDates(startDate, endDate);
     if (settings) event.updateSettings(settings);
 
