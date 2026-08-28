@@ -298,6 +298,8 @@ export function EventDetail({ slug }: { slug: string }) {
           <div className="space-y-4">
             <RegistrationPanel
               eventId={event.id}
+              eventName={event.name}
+              pricing={event.pricing}
               isOrganizer={canManageParticipation}
               onEnrolled={() => setEnrollmentRefreshKey((k) => k + 1)}
             />

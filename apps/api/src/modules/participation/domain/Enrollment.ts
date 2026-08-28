@@ -65,6 +65,46 @@ export class Enrollment {
     });
   }
 
+  /**
+   * A paid event's enrollment starts here: the seat is reserved (see
+   * `isActive`, which counts PendingPayment toward capacity so a paid event
+   * can't oversell while payments are in flight) but the enrollee is not yet
+   * a confirmed participant. `confirmPayment` moves it forward once the
+   * payment context publishes PaymentSucceeded.
+   */
+  static createPendingPayment(
+    registrationId: string,
+    eventId: string,
+    userId: string,
+    responses: EnrollmentResponse[],
+  ): Enrollment {
+    return new Enrollment({
+      id: randomUUID(),
+      registrationId,
+      eventId,
+      userId,
+      status: "PendingPayment",
+      responses,
+      reviewedBy: null,
+      reviewedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * Payment received. Auto-approving events go straight to Approved; events
+   * that require organizer approval land in Pending for review, exactly as an
+   * unpaid enrollment would.
+   */
+  confirmPayment(autoApprove: boolean): void {
+    if (this.status !== "PendingPayment") {
+      throw new Error(`Cannot confirm payment for enrollment in "${this.status}" status`);
+    }
+    this.status = autoApprove ? "Approved" : "Pending";
+    this.updatedAt = new Date();
+  }
+
   approve(reviewerId: string): void {
     if (this.status !== "Pending" && this.status !== "Waitlisted") {
       throw new Error(`Cannot approve enrollment in "${this.status}" status`);
@@ -102,6 +142,11 @@ export class Enrollment {
   }
 
   get isActive(): boolean {
-    return this.status === "Approved" || this.status === "Pending" || this.status === "Waitlisted";
+    return (
+      this.status === "PendingPayment" ||
+      this.status === "Approved" ||
+      this.status === "Pending" ||
+      this.status === "Waitlisted"
+    );
   }
 }

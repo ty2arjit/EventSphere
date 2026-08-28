@@ -58,7 +58,7 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
     return this.prisma.enrollment.count({
       where: {
         registrationId,
-        status: { in: ["Approved", "Pending", "Waitlisted"] },
+        status: { in: ["PendingPayment", "Approved", "Pending", "Waitlisted"] },
       },
     });
   }

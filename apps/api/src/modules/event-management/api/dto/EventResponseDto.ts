@@ -27,6 +27,7 @@ export interface EventResponseDto {
     onlineUrl: string | null;
   };
   capacity: { min: number | null; max: number | null };
+  pricing: { isPaid: boolean; amount: number | null; currency: string };
   startDate: string | null;
   endDate: string | null;
   state: string;

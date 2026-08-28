@@ -16,6 +16,7 @@ export function toEventResponse(event: Event): EventResponseDto {
     visibility: event.visibility,
     location: event.location,
     capacity: event.capacity,
+    pricing: event.pricing,
     startDate: event.startDate?.toISOString() ?? null,
     endDate: event.endDate?.toISOString() ?? null,
     state: event.state,
