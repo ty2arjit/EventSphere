@@ -5,9 +5,10 @@ import { EventMode } from './valueObjects/EventMode';
 import { EventVisibility } from './valueObjects/EventVisibility';
 import { Location } from './valueObjects/Location';
 import { Capacity, validateCapacity } from './valueObjects/Capacity';
+import { EventPricing, freePricing, isPricingPublishable } from './valueObjects/EventPricing';
 import { Session } from './entities/Session';
 import { EventSettings } from './entities/EventSettings';
-import { InvalidTransitionError, EventReadOnlyError, SessionNotFoundError, SessionRequiresLiveEventError } from './errors';
+import { InvalidTransitionError, EventReadOnlyError, SessionNotFoundError, SessionRequiresLiveEventError, EventMissingPriceError } from './errors';
 import { makeEventCreated } from './events/EventCreated';
 import { makeEventPublished } from './events/EventPublished';
 import { makeLifecycleEvent, REGISTRATION_OPENED, REGISTRATION_CLOSED, EVENT_STARTED, EVENT_COMPLETED, EVENT_ARCHIVED, EVENT_CANCELLED } from './events/EventLifecycleChanged';
@@ -26,6 +27,7 @@ export interface EventProps {
   visibility: EventVisibility;
   location: Location;
   capacity: Capacity;
+  pricing: EventPricing;
   startDate: Date | null;
   endDate: Date | null;
   state: EventLifecycleState;
@@ -64,6 +66,7 @@ export class Event {
       visibility: input.visibility ?? 'Public',
       location: { venue: null, address: null, city: null, onlineUrl: null },
       capacity: { min: null, max: null },
+      pricing: freePricing(),
       startDate: null,
       endDate: null,
       state: 'Draft',
@@ -97,6 +100,7 @@ export class Event {
   get visibility(): EventVisibility { return this.props.visibility; }
   get location(): Location { return this.props.location; }
   get capacity(): Capacity { return this.props.capacity; }
+  get pricing(): EventPricing { return this.props.pricing; }
   get startDate(): Date | null { return this.props.startDate; }
   get endDate(): Date | null { return this.props.endDate; }
   get state(): EventLifecycleState { return this.props.state; }
@@ -153,6 +157,23 @@ export class Event {
     this.touch();
   }
 
+  /**
+   * Set or clear the registration fee. Deliberately permissive while the
+   * event is a Draft — the "paid events need a positive amount" rule is a
+   * publish-time gate, not an edit-time one (see `publish`). Switching to
+   * free discards any previously entered amount so a stale price can't leak.
+   */
+  updatePricing(fields: { isPaid?: boolean; amount?: number | null; currency?: string }): void {
+    this.ensureWritable();
+    const next: EventPricing = { ...this.props.pricing };
+    if (fields.isPaid !== undefined) next.isPaid = fields.isPaid;
+    if (fields.currency !== undefined) next.currency = fields.currency;
+    if (fields.amount !== undefined) next.amount = fields.amount;
+    if (!next.isPaid) next.amount = null;
+    this.props.pricing = next;
+    this.touch();
+  }
+
   updateSettings(fields: Parameters<EventSettings['update']>[0]): void {
     this.ensureWritable();
     this.props.settings.update(fields);
@@ -188,7 +209,10 @@ export class Event {
     }
   }
 
-  publish(): void { this.transitionTo('Published'); }
+  publish(): void {
+    if (!isPricingPublishable(this.props.pricing)) throw new EventMissingPriceError();
+    this.transitionTo('Published');
+  }
   openRegistration(): void { this.transitionTo('RegistrationOpen'); }
   closeRegistration(): void { this.transitionTo('RegistrationClosed'); }
   goLive(): void { this.transitionTo('Live'); }

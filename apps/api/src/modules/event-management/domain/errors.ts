@@ -32,6 +32,12 @@ export class SessionRequiresLiveEventError extends DomainError {
   constructor() { super('Session cannot go Live unless the parent Event is Live'); }
 }
 
+export class EventMissingPriceError extends DomainError {
+  readonly kind: DomainErrorKind = 'VALIDATION';
+  readonly code = 'EVENT_MISSING_PRICE';
+  constructor() { super('A paid event must have a registration fee greater than zero before it can be published'); }
+}
+
 export class EventSlugTakenError extends DomainError {
   readonly kind: DomainErrorKind = 'CONFLICT';
   readonly code = 'EVENT_SLUG_TAKEN';
