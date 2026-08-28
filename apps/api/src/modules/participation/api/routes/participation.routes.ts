@@ -48,7 +48,7 @@ export function createParticipationRouter(deps: ParticipationRouterDependencies)
   const controller = new ParticipationController(
     new CreateRegistrationService(deps.registrationRepository, deps.eventPublisher),
     new ManageRegistrationService(deps.registrationRepository, deps.eventPublisher),
-    new EnrollService(deps.registrationRepository, deps.enrollmentRepository, deps.eventPublisher),
+    new EnrollService(deps.registrationRepository, deps.enrollmentRepository, deps.eventPublisher, deps.eventRepository),
     attendanceService,
     certificateService,
     new GenerateCheckInQrService(deps.enrollmentRepository, qrTokenService),
